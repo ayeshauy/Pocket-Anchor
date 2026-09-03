@@ -1,0 +1,252 @@
+{
+  "theme": {
+    "archetype": "ORGANIC & EARTHY / DIGITAL SANCTUARY",
+    "description": "Pocket Anchor is designed as a warm, tactile, contemplative digital haven for mental health crisis, nomadic medical continuity, and survivor safety. It intentionally rejects clinical, cold, or alarmist design in favor of soft natural tones, organic depth, thoughtful micro-animations, and empathetic hierarchy.",
+    "default_mode": "light",
+    "color_palette": {
+      "cloud": "#FBFBF9",
+      "cloud_card": "#FFFFFF",
+      "cloud_subtle": "#F4F3EE",
+      "cloud_muted": "#ECEAE2",
+      "azul": "#9197AA",
+      "azul_light": "#D8DBE4",
+      "azul_dark": "#4D5468",
+      "mimosa": "#F7B557",
+      "mimosa_soft": "#FEF3DE",
+      "mimosa_dark": "#D68D25",
+      "orange": "#C1521E",
+      "orange_soft": "#FBEAE2",
+      "aperol": "#F36B38",
+      "aperol_soft": "#FEECE5",
+      "willow_grove": "#4C5D4B",
+      "willow_grove_light": "#8E9E8D",
+      "willow_grove_dark": "#2B382A",
+      "text_primary": "#1F2623",
+      "text_secondary": "#535E56",
+      "text_muted": "#7E8B83",
+      "border_subtle": "rgba(76, 93, 75, 0.12)",
+      "border_focus": "rgba(193, 82, 30, 0.35)",
+      "dark_sanctuary_bg": "#171D1A",
+      "dark_sanctuary_card": "#212A26",
+      "dark_sanctuary_border": "rgba(216, 219, 228, 0.14)"
+    },
+    "mood_pulse_states": {
+      "grounded": {
+        "color": "#4C5D4B",
+        "name": "Willow Grove",
+        "label": "Grounded & Centered",
+        "glow": "rgba(76, 93, 75, 0.3)",
+        "gradient": "radial-gradient(circle at 35% 35%, #8E9E8D 0%, #4C5D4B 60%, #2B382A 100%)"
+      },
+      "hopeful": {
+        "color": "#F7B557",
+        "name": "Mimosa",
+        "label": "Hopeful & Reaching Out",
+        "glow": "rgba(247, 181, 87, 0.4)",
+        "gradient": "radial-gradient(circle at 35% 35%, #FEE8B7 0%, #F7B557 60%, #C1521E 100%)"
+      },
+      "struggling": {
+        "color": "#9197AA",
+        "name": "Azul",
+        "label": "Struggling & Silent Care",
+        "glow": "rgba(145, 151, 170, 0.35)",
+        "gradient": "radial-gradient(circle at 35% 35%, #D8DBE4 0%, #9197AA 60%, #4D5468 100%)"
+      }
+    }
+  },
+  "typography": {
+    "heading_font": "Cormorant Garamond, Georgia, serif",
+    "body_font": "DM Sans, system-ui, -apple-system, sans-serif",
+    "mono_font": "IBM Plex Mono, monospace",
+    "hierarchy": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl font-serif font-light tracking-tight leading-[1.08]",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl font-serif font-normal tracking-tight leading-snug",
+      "h3": "text-xl sm:text-2xl font-serif font-medium leading-normal",
+      "h4": "text-lg sm:text-xl font-sans font-semibold tracking-normal",
+      "body": "text-base font-sans font-normal leading-relaxed text-[#535E56]",
+      "body_sm": "text-sm font-sans font-normal leading-relaxed text-[#7E8B83]",
+      "label_caps": "text-xs font-sans uppercase tracking-[0.2em] font-semibold text-[#4C5D4B]"
+    },
+    "font_import_links": "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+  },
+  "pillars_structure": {
+    "pillar_1": {
+      "id": "mental_health_sanctuary",
+      "title": "Sanctuary & Silent Support",
+      "subtitle": "Crisis De-escalation, Emotional Anchoring & Shared Compassion",
+      "primary_color": "#4C5D4B",
+      "accent_color": "#F7B557",
+      "features": [
+        "Mood Pulse interactive animated orb (Grounded/Willow Grove, Hopeful/Mimosa, Struggling/Azul)",
+        "Anchor Link public page ('Give [Name] a reason to stay') with anonymous supportive notes and voice clips",
+        "Wall of Hope masonry feed with real-time 'Felt this' and warm light reactions",
+        "Emergency Archive (Break Glass Protocol) with one-click crisis pack release to trusted guardians",
+        "Private Journal with mood spectrum color mapping and emotional triggers tags",
+        "Guardian Dashboard with silent status indicators and safety check-ins",
+        "Memory Vault for uplifting audio messages, photos, and safety reasons",
+        "Guided Breathing Exercises player (4-7-8, Box Breathing, Gentle Ocean Wave with haptic/visual pacing)",
+        "14-Day Mood Rhythm Chart with contextual insight triggers",
+        "SOS Floating Action Dock with 988 lifeline direct trigger and silent SOS"
+      ]
+    },
+    "pillar_2": {
+      "id": "nomadic_health_medical",
+      "title": "Nomadic Health & Medical Vault",
+      "subtitle": "Decentralized Care Infrastructure for Travelers & Digital Nomads",
+      "primary_color": "#C1521E",
+      "accent_color": "#F36B38",
+      "features": [
+        "Spatial Health Guide (Interactive OpenStreetMap / Clinic Locator with emergency wait times & language tags)",
+        "Medical Vault (Client-side encrypted emergency records, allergies, blood type, and ICE contacts)",
+        "Care Orchestrator (Cross-border prescription routing, insurance claiming, time-zone medication sync)",
+        "Proactive Monitor (Altitude, travel fatigue, vaccination validity, malaria prophylaxis tracker)",
+        "Global Doctor Network (Verified multilingual telemedicine practitioners available across time zones)"
+      ]
+    },
+    "pillar_3": {
+      "id": "survivor_ipv_support",
+      "title": "Survivor & IPV Support Services",
+      "subtitle": "Discreet, End-to-End Safety, Legal & Recovery Infrastructure",
+      "primary_color": "#9197AA",
+      "accent_color": "#F36B38",
+      "features": [
+        "Quick-Exit & Instant Screen Blur (Key shortcut 'Esc x 2' or one-tap masquerade switch to weather/news mode)",
+        "Survivor Navigator AI Chatbot (Trauma-informed, zero-retention safe conversational companion)",
+        "Resource Directory (Geolocated emergency shelters, vetted legal advocates, discrete transit funds)",
+        "Encrypted Evidence Vault (Tamper-evident timestamped photos, audio notes, incident logbook with decoy password)",
+        "Rebuilding Action Plan Tracker (Four holistic tracks: Safe Housing, Financial Autonomy, Emotional Healing, Legal & Identity Protection)"
+      ]
+    }
+  },
+  "layout_and_navigation": {
+    "navigation_bar": {
+      "style": "crystal_glass",
+      "background": "bg-[#FBFBF9]/85 backdrop-blur-xl border-b border-[#4C5D4B]/10",
+      "elements": [
+        "Pocket Anchor Brand Emblem (Stone & Leaf minimalist crest)",
+        "Pillar Switcher Tabs (Sanctuary, Health Infrastructure, Survivor Support)",
+        "Safety Shield Quick-Exit Button (Always visible on top right)",
+        "Anchor Link generation pill ('app.anchor/with/your-name')",
+        "Emergency 988 Quick Trigger Button",
+        "User Profile / Sanctuary Settings"
+      ]
+    },
+    "surface_styles": {
+      "organic_card": "bg-white/90 backdrop-blur-md rounded-2xl border border-[#4C5D4B]/12 shadow-[0_8px_30px_rgba(76,93,75,0.06)] hover:shadow-[0_12px_35px_rgba(76,93,75,0.1)] transition-all duration-300",
+      "warm_highlight_card": "bg-gradient-to-br from-[#FEF3DE]/80 to-white/90 rounded-2xl border border-[#F7B557]/30 shadow-[0_10px_28px_rgba(247,181,87,0.12)]",
+      "break_glass_card": "bg-gradient-to-br from-[#FBEAE2]/90 to-white/95 rounded-2xl border-2 border-dashed border-[#C1521E]/40 p-6 shadow-md relative overflow-hidden",
+      "sanctuary_pill_active": "bg-[#4C5D4B] text-white shadow-sm rounded-full px-5 py-2 font-sans text-sm font-medium transition-transform active:scale-95",
+      "sanctuary_pill_inactive": "bg-white/80 hover:bg-[#ECEAE2] text-[#535E56] rounded-full px-5 py-2 font-sans text-sm font-medium border border-[#4C5D4B]/10 transition-colors"
+    }
+  },
+  "visual_enhancers": {
+    "background_texture": "Subtle paper and grain texture overlay to eliminate sterile digital gloss",
+    "organic_shapes": "Curved asymmetrical bento grid containers with fluid border radii (16px to 28px)",
+    "mood_orb_canvas": "Canvas / CSS radial animated glowing orb that pulses at 0.1Hz rhythm matching relaxed human heart rate",
+    "quick_exit_masquerade": "Decoy screen resembling a neutral daily weather and news dashboard ('Morning Weather Forecast') when Esc is pressed"
+  },
+  "image_urls": {
+    "hero_sanctuary_nature": {
+      "url": "https://images.unsplash.com/photo-1544039161-b0c20826c6f6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzl8MHwxfHNlYXJjaHwxfHxjYWxtJTIwbmF0dXJlJTIwbWlzdHklMjBmb3Jlc3QlMjBzdW5yaXNlfGVufDB8fHx8MTc4ODQwMzgxM3ww&ixlib=rb-4.1.0&q=85",
+      "category": "Hero Backgrounds & Sanctuary Header",
+      "description": "Dirt path winding through a misty forest with serene morning lighting"
+    },
+    "warm_contemplation": {
+      "url": "https://images.unsplash.com/photo-1604520024165-2f48dfca2a8b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNzl8MHwxfHx3YXJtJTIwY29tZm9ydGluZyUyMGN1cCUyMG9mJTIwdGVhJTIwYm9va3xlbnwwfHx8fDE3ODg0MDM4MTN8MA&ixlib=rb-4.1.0&q=85",
+      "category": "Private Journal & Memory Vault Cards",
+      "description": "Warm ceramic mug resting near an open book and window with soft lighting"
+    },
+    "misty_coastal_horizon": {
+      "url": "https://images.unsplash.com/photo-1785077000941-bc426b685e23?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2ODl8MHwxfHNlYXJjaHwxfHxzZXJlbmUlMjBjb2FzdGFsJTIwY2xpZmZzJTIwbW9ybmluZyUyMG1pc3QlMjBvY2VhbnxlbnwwfHx8fDE3ODg0MDM4MjJ8MA&ixlib=rb-4.1.0&q=85",
+      "category": "Breathing Exercise & Golden Hour Rebuilding Section",
+      "description": "Misty coastal cliffs and golden hour sea haze inspiring grounding and resilience"
+    },
+    "golden_hour_meadow": {
+      "url": "https://images.unsplash.com/photo-1567853042143-8d8480f022ad?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMzl8MHwxfHNlYXJjaHw0fHxjYWxtJTIwbmF0dXJlJTIwbWlzdHklMjBmb3Jlc3QlMjBzdW5yaXNlfGVufDB8fHx8MTc4ODQwMzgxM3ww&ixlib=rb-4.1.0&q=85",
+      "category": "Wall of Hope Header & Anchor Public Link Banner",
+      "description": "Green meadow at golden sunrise representing warmth, renewal, and mutual support"
+    }
+  },
+  "component_guidelines": {
+    "auth_modal": {
+      "path": "src/components/auth/AuthModal.js",
+      "description": "Warm, non-intrusive dialog with Google One-Tap, Magic Link, and anonymous guest sanctuary mode.",
+      "test_ids": ["auth-modal-dialog", "auth-google-btn", "auth-email-input", "auth-guest-btn"]
+    },
+    "onboarding_modal": {
+      "path": "src/components/onboarding/SanctuaryOnboarding.js",
+      "description": "3-step gentle setup: 1. Name your Sanctuary, 2. Choose default Mood Orbit tone, 3. Generate secure shareable Anchor Link 'app.anchor/with/your-name'.",
+      "test_ids": ["onboarding-step-container", "sanctuary-name-input", "generate-anchor-link-btn", "onboarding-finish-btn"]
+    },
+    "mood_pulse_orb": {
+      "path": "src/components/sanctuary/MoodPulseOrb.js",
+      "description": "Fluid animated canvas/CSS orb with 3 states: Willow Grove (Grounded), Mimosa (Hopeful), Azul (Struggling). Features tactile slider for mood intensity and quick note addition.",
+      "test_ids": ["mood-pulse-orb", "mood-select-grounded", "mood-select-hopeful", "mood-select-struggling", "mood-intensity-slider", "log-pulse-btn"]
+    },
+    "anchor_public_page": {
+      "path": "src/components/sanctuary/AnchorPublicView.js",
+      "description": "Public interactive portal for 'Give [Name] a reason to stay'. Allows friends, family, or anonymous kindred souls to leave warmth messages, voice recordings, photo keepsakes, and song recommendations with zero login required.",
+      "test_ids": ["anchor-public-container", "reason-textarea", "reason-category-select", "submit-reason-btn", "kindness-counter"]
+    },
+    "wall_of_hope": {
+      "path": "src/components/sanctuary/WallOfHope.js",
+      "description": "Masonry responsive feed of uplifting messages, survival milestones, and quotes. Includes interactive 'Felt this' counter, 'Send warmth' micro-firefly animation, and filter tags.",
+      "test_ids": ["wall-of-hope-grid", "wall-filter-all", "felt-this-btn", "add-hope-card-btn"]
+    },
+    "emergency_archive": {
+      "path": "src/components/sanctuary/EmergencyArchive.js",
+      "description": "The 'Break Glass' safety locker. If triggered, instantly reveals pre-written anchor letters, safe contacts, emergency survival kit, and unlocks emergency guardian notifications.",
+      "test_ids": ["break-glass-trigger", "emergency-archive-modal", "confirm-break-glass-btn", "guardian-alert-status"]
+    },
+    "private_journal": {
+      "path": "src/components/sanctuary/PrivateJournal.js",
+      "description": "Rich text journal with mood color tinting, voice recording dictation simulator, emotion tag chips, and zero-knowledge client encryption toggle.",
+      "test_ids": ["journal-container", "journal-entry-title", "journal-entry-body", "journal-save-btn", "journal-tag-selector"]
+    },
+    "breathing_exercises": {
+      "path": "src/components/sanctuary/BreathingPlayer.js",
+      "description": "Audio-visual breathing pacer with 3 selectable techniques: 4-7-8 Deep Sleep, Box Breathing Focus, and Gentle Wave Ocean Rhythm. Visual expanding ring with soothing countdown cues.",
+      "test_ids": ["breathing-player", "technique-select-478", "technique-select-box", "technique-select-wave", "breathing-play-toggle"]
+    },
+    "spatial_health_guide": {
+      "path": "src/components/health/SpatialHealthGuide.js",
+      "description": "Interactive map & clinic finder for nomads: filters by 24/7 emergency, English/multilingual doctors, pharmacy, dental, walk-in cost transparency, and offline directions cache.",
+      "test_ids": ["spatial-health-map", "search-clinic-input", "clinic-filter-emergency", "clinic-card-item", "book-teleconsult-btn"]
+    },
+    "medical_vault": {
+      "path": "src/components/health/MedicalVault.js",
+      "description": "Encrypted health locker: Blood type, drug allergies, active prescriptions with international brand name converter, vaccination QR passes, and downloadable offline emergency card.",
+      "test_ids": ["medical-vault-container", "add-medical-record-btn", "allergy-chip-list", "download-emergency-card-btn"]
+    },
+    "survivor_navigator": {
+      "path": "src/components/safety/SurvivorNavigator.js",
+      "description": "Compassionate, trauma-informed AI support chatbot. Built with empathetic prompting, immediate de-escalation scripts, local resource lookup, and instant chat purge button.",
+      "test_ids": ["survivor-chat-container", "chat-input-textarea", "chat-send-btn", "chat-purge-instant-btn"]
+    },
+    "evidence_vault": {
+      "path": "src/components/safety/EvidenceVault.js",
+      "description": "Discrete, high-security incident log with timestamping, encrypted photo/document attachments, metadata stripping, and decoy password protection ('Notes & Recipes').",
+      "test_ids": ["evidence-vault-container", "add-incident-log-btn", "incident-date-picker", "decoy-mode-toggle"]
+    },
+    "rebuilding_plan": {
+      "path": "src/components/safety/RebuildingTracker.js",
+      "description": "Interactive recovery roadmap across 4 key pillars: 1. Safe Housing, 2. Financial Independence, 3. Emotional Reconnection, 4. Legal & Identity Renewal.",
+      "test_ids": ["rebuilding-tracker-container", "track-tab-housing", "track-tab-financial", "track-tab-emotional", "track-tab-legal", "goal-checkbox-item"]
+    },
+    "quick_exit_banner": {
+      "path": "src/components/safety/QuickExitDock.js",
+      "description": "Persistent floating safety trigger with double-esc hotkey binding, instant decoy screen redirect to Google Weather, and screen blur overlay.",
+      "test_ids": ["quick-exit-floating-btn", "screen-blur-toggle-btn", "decoy-weather-screen"]
+    }
+  },
+  "instructions_to_main_agent": [
+    "1. Follow the mandatory 6-color palette strictly: Cloud (#FBFBF9), Azul (#9197AA), Mimosa (#F7B557), Orange (#C1521E), Aperol (#F36B38), and Willow Grove (#4C5D4B).",
+    "2. Use Cormorant Garamond for all headings (h1 to h3) and DM Sans for body text. Load fonts properly in index.html / index.css.",
+    "3. Implement the 3 Core Functional Pillars with a fluid, seamless tab switcher: 1) Mental Health & Silent Support, 2) Nomadic Health & Medical Infrastructure, 3) Survivor & IPV Support Services.",
+    "4. Ensure the Quick Exit button and Screen Blur hotkey (Esc key or click) work reliably on all views with a realistic neutral decoy view ('Daily Weather & News').",
+    "5. Include all requested features: Auth Modal (Google/Email/Anonymous), Sanctuary Onboarding (generates link 'app.anchor/with/[name]'), Mood Pulse animated orb (Willow Grove/Mimosa/Azul), Wall of Hope with 'Felt this' counters, Emergency Archive ('Break Glass'), Private Journal, Guardian Dashboard, Memory Vault, Breathing Player (4-7-8, Box, Wave), 14-day Mood chart, Spatial Health Guide with interactive clinic search & map, Medical Vault with international prescription translations, Survivor Navigator AI Chatbot, Evidence Vault with decoy toggle, and Rebuilding Action Plan Tracker.",
+    "6. Ensure all interactive and key data elements include explicit 'data-testid' attributes in kebab-case format for automated testing.",
+    "7. Never use pure transparent backgrounds for navbars, modals, or dropdowns. Always provide solid or glassmorphic tinted backgrounds (e.g., bg-[#FBFBF9]/90 with backdrop-blur-xl).",
+    "8. Deliver a responsive, deeply empathetic, polished, top 1% UI with serene micro-animations, rich tactile interactions, and zero clinical harshness."
+  ]
+}

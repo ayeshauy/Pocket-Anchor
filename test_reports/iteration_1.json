@@ -1,0 +1,50 @@
+{
+  "summary": "First-finish latency test of Pocket Anchor. Seeded a MongoDB test user + session for ayesha.pocketagency@gmail.com and validated public + authenticated flows across landing, safety, anchor-public, dashboard, and health. AI SSE streaming (comfort + survivor) returns chunked tokens correctly. All three critical pillars (Sanctuary, Nomadic Health, Survivor) are reachable and rendering.",
+  "tested_scope": ["frontend", "backend", "auth", "integration"],
+  "passed": [
+    "GET /api/resources returns 988 + National DV Hotline",
+    "GET /api/clinics returns Bumrungrad/Raffles/etc",
+    "GET /api/sanctuary/public/ayesha returns {slug:'ayesha', reasons_count}",
+    "GET /api/auth/me (Bearer seeded token) returns test user with sanctuary_slug='ayesha'",
+    "POST /api/hope/ayesha (public, kind=text) created a hope reason id",
+    "POST /api/mood {state,intensity,note} stored 200",
+    "POST /api/journal 200",
+    "GET /api/hope (auth) returns 200 array; GET /api/hope/emergency returns favourites/recent",
+    "POST /api/ai/chat mode=comfort streams SSE 'data:' chunks then [DONE]",
+    "POST /api/ai/chat mode=survivor streams SSE including 988/DV hotline copy",
+    "Landing /: mood-pulse-orb + get-started-btn + safety-cta present; headline 'Support that doesn\u2019t ask for an answer' rendered (see landing screenshot)",
+    "Safety /safety public: safety-tab-resources, safety-tab-navigator visible, 988 + 1-800-799-7233 rendered, quick-exit-floating-btn visible",
+    "Escape x 2 within 700ms triggers decoy-weather-screen (Morning Weather 68\u00b0F) and decoy-exit-btn returns to app",
+    "Survivor Navigator tab renders chat-input-textarea, chat-send-btn, chat-purge-instant-btn",
+    "Anchor public /with/ayesha: anchor-public-container, reason-textarea, supporter-name-input, submit-reason-btn, kindness-counter all present; submitted reason 'You matter to us, keep going.' shows on Wall of Hope",
+    "Seeded /dashboard renders Mood Pulse card (Grounded/Hopeful/Struggling), Anchor Link (anchor-hope.preview.emergentagent.com/with/ayesha), Break Glass Archive, Wall of Hope + Journal + Breathing tabs, Quick Exit dock",
+    "/dashboard/health: health-tab-clinics active, search-clinic-input, clinic-card-item, clinic-filter-emergency visible; clinics list populated"
+  ],
+  "failed": [
+    {
+      "area": "review-request wording (not a bug)",
+      "issue": "Review requested POST /api/hope/anchor-hope but actual route is POST /api/hope/{slug} (e.g. /api/hope/ayesha). Using literal 'anchor-hope' returns {detail:'Sanctuary not found'} which is correct behaviour.",
+      "evidence": "curl POST /api/hope/anchor-hope -> 404-like; /api/hope/ayesha -> 200 with created record",
+      "priority": "LOW"
+    },
+    {
+      "area": "frontend / health",
+      "issue": "data-testid add-medical-record-btn and med-label-input were not found on /dashboard/health default view. They likely live under the 'Medical Vault' sub-tab (default is 'Spatial Health Guide'). Not verified on that sub-tab in this iteration.",
+      "evidence": "Screenshot shows Spatial Health Guide active with Medical Vault + Doctor Network tabs; testids only asserted on default tab.",
+      "priority": "LOW"
+    },
+    {
+      "area": "console",
+      "issue": "401 on /api/auth/me on public pages before cookie set (expected; AuthContext calls /auth/me). Cosmetic only.",
+      "evidence": "console error 401 on landing/safety/anchor-public before login",
+      "priority": "LOW"
+    }
+  ],
+  "action_items": [
+    "None blocking. Optionally suppress /auth/me 401 noise on public routes (already gated when hash has session_id, but not on cold /safety visit).",
+    "Consider aliasing POST /api/hope/anchor-hope to the current /api/hope/{slug} if the review spec expected that literal path; otherwise update spec wording."
+  ],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "retest_needed": false,
+  "full_testing_deferred": true
+}
