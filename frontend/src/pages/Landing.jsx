@@ -6,7 +6,7 @@ import MoodPulseOrb from '@/components/sanctuary/MoodPulseOrb';
 import LiveSandbox from '@/components/landing/LiveSandbox';
 import { API } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { HeartHandshake, Globe2, ShieldCheck, Lock, DoorOpen, Compass, ArrowRight } from 'lucide-react';
+import { HeartHandshake, Globe2, ShieldCheck, Lock, DoorOpen, Compass, ArrowRight, Check } from 'lucide-react';
 
 const PILLARS = [
   {
@@ -14,23 +14,47 @@ const PILLARS = [
     num: 'Pillar I',
     name: 'Sanctuary',
     sub: 'Mental Health & Silent Support',
-    desc: 'Low-energy tools, passive mood insights, in-browser voice note recording, and low-stimulation "Thinking-of-You" pulse check-ins.',
+    tagline: 'Passive support for the days when talking is too much. Your people show up without asking you to answer.',
+    features: [
+      ['Anchor Link (/with/:slug)', 'one link that speaks for you'],
+      ['Wall of Hope', 'a growing archive of reasons to stay'],
+      ['Silent Hugs', 'someone felt this, no reply needed'],
+      ['Emergency "Break-Glass" Archive', 'for the worst hours'],
+      ['Private Journal', 'with granular view permissions'],
+    ],
+    modules: ['♡ Anchor', 'ⓘ Care', '◈ Journal', '⛨ Guardian'],
     bg: 'from-willow to-willow-dark', accent: '#F7B557',
   },
   {
     icon: Globe2,
     num: 'Pillar II',
-    name: 'Nomadic Health',
-    sub: 'Medical Infrastructure',
-    desc: 'Client-side non-custodial medical vaults, spatial clinic/pharmacy maps, and real-time SLM clinical prescription translation into local brand names.',
+    name: 'Core Layer',
+    sub: 'Nomadic Health & Medical Infrastructure',
+    tagline: 'Non-custodial health infrastructure for people who move: your records, your money, your care, across borders.',
+    features: [
+      ['Spatial Health Guide', 'safe-haven clinics & live pharmacy stock'],
+      ['Medical Vault', 'with SLM diagnostic translation'],
+      ['USDC cross-border settlement rails', 'instant, no SWIFT friction'],
+      ['Care orchestration', 'appointments and follow-ups'],
+      ['Proactive monitoring', 'and a global specialist network'],
+    ],
+    modules: ['◉ Health Guide', '▤ Med Vault', '$ Financial', '✆ Concierge', '↗ Monitor', '✚ Doctors'],
     bg: 'from-orange to-[#8a3a12]', accent: '#F36B38',
   },
   {
     icon: ShieldCheck,
     num: 'Pillar III',
-    name: 'Survivor Safety',
-    sub: 'IPV & Emergency Care',
-    desc: '100% free zero-auth crisis directory, trauma-informed AI navigator, EXIF metadata stripping, and client-side AES-256 encrypted evidence vaults with decoy unlock support.',
+    name: 'Safety Layer',
+    sub: 'Survivor & IPV Support Services',
+    tagline: 'Zero-auth help for anyone being hurt by another person. Nothing here waits behind an account.',
+    features: [
+      ['Zero-auth Resource Directory', 'hotlines, shelters, legal aid'],
+      ['Survivor Navigator AI', 'options, never orders'],
+      ['Evidence Vault', 'client-side AES-256-GCM file encryption'],
+      ['Rebuilding Roadmap', 'across four pillars'],
+      ['Quick-exit & blur-screen controls', 'on every page'],
+    ],
+    modules: ['⚑ Resources', '➤ Navigator', '⛉ Evidence', '❀ Rebuilding'],
     bg: 'from-azul-dark to-[#2d3242]', accent: '#F36B38',
   },
 ];
@@ -129,21 +153,46 @@ export default function Landing({ onSignIn }) {
       {/* SECTION 1 — PLATFORM */}
       <section id="platform" className="max-w-7xl mx-auto px-5 lg:px-10 py-20" data-testid="section-platform">
         <p className="text-xs uppercase tracking-[0.3em] text-willow-light">Platform</p>
-        <h2 className="font-serif text-4xl md:text-5xl text-willow-dark font-light mt-3">Three pillars, one sanctuary.</h2>
+        <h2 className="font-serif text-4xl md:text-5xl text-willow-dark font-light mt-3">Every feature belongs to one of three.</h2>
+        <p className="mt-4 text-[#535E56] max-w-2xl leading-relaxed">
+          The product is deliberately split so that a person in crisis never has to wade through features
+          built for someone else's problem.
+        </p>
         <div className="grid lg:grid-cols-3 gap-6 mt-12">
           {PILLARS.map((p) => {
             const I = p.icon;
             return (
               <div key={p.name} data-testid={`pillar-${p.name.toLowerCase().replace(/\s/g, '-')}`}
-                   className={`relative rounded-3xl p-8 text-cloud bg-gradient-to-br ${p.bg} overflow-hidden min-h-[300px] flex flex-col`}>
-                <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full" style={{ background: p.accent, opacity: 0.35, filter: 'blur(40px)' }} />
+                   className={`relative rounded-3xl p-8 text-cloud bg-gradient-to-br ${p.bg} overflow-hidden flex flex-col`}>
+                <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full pointer-events-none" style={{ background: p.accent, opacity: 0.35, filter: 'blur(40px)' }} />
                 <div className="flex items-center justify-between relative">
                   <div className="w-11 h-11 rounded-full bg-cloud/15 flex items-center justify-center"><I className="w-5 h-5" style={{ color: p.accent }} /></div>
                   <span className="font-mono text-[11px] uppercase tracking-[0.2em] text-cloud/60">{p.num}</span>
                 </div>
                 <h3 className="font-serif text-3xl font-light mt-5">{p.name}</h3>
                 <p className="text-[11px] uppercase tracking-[0.2em] mt-1" style={{ color: p.accent }}>{p.sub}</p>
-                <p className="text-sm text-cloud/85 relative mt-4 leading-relaxed">{p.desc}</p>
+                <p className="font-serif text-base text-cloud/90 italic relative mt-4 leading-relaxed">"{p.tagline}"</p>
+                <div className="relative mt-6 flex-1">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-cloud/50 mb-3">What it includes</p>
+                  <ul className="space-y-2.5">
+                    {p.features.map(([name, note]) => (
+                      <li key={name} className="flex gap-2.5 text-sm text-cloud/85 leading-snug">
+                        <Check className="w-4 h-4 flex-shrink-0 mt-0.5" style={{ color: p.accent }} />
+                        <span><span className="text-cloud">{name}</span> — <span className="text-cloud/70">{note}</span></span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="relative mt-6 pt-5 border-t border-cloud/15">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-cloud/50 mb-2.5">Interactive modules</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {p.modules.map((m) => (
+                      <span key={m} className="text-[11px] px-2.5 py-1 rounded-full bg-cloud/10 border border-cloud/15 text-cloud/85">
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             );
           })}

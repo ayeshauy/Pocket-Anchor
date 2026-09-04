@@ -64,6 +64,7 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - **Live Sandbox** on landing (`LiveSandbox.jsx`, between Platform and About): three no-account demos — in-browser voice recorder (MediaRecorder, local playback, zero upload), pharmacy stock inspector (`GET /api/demo/pharmacy?med=` — public, deterministic demo data, local brand names across 6 countries), and a live Survivor Navigator chat streaming from `/api/ai/chat` with suggestion chips
 - **New official logo** (dark willow rounded square, white anchor) replaced everywhere: nav, auth modal, favicon, OG card asset (`/app/backend/assets/logo.png`)
 - Verified: pharmacy table renders with stock/price/Rx, navigator streams a real Claude response, voice tab recorder UI present, logo in nav
+- **Platform section rebuilt** (iter 6b): new header "Every feature belongs to one of three" + deliberate-split subtitle; each pillar card now carries italic tagline, 5-item "What it includes" checklist with notes, and interactive module chips (♡ Anchor / ◉ Health Guide / ⚑ Resources sets)
 
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
