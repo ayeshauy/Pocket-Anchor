@@ -150,6 +150,35 @@ def guardian_invite_html(owner_name: str, sanctuary_name: str, accept_url: str, 
     return subject, _shell(inner)
 
 
+def pulse_notify_html(guardian_name: str, owner_name: str, note: str, circle_url: str) -> tuple[str, str]:
+    subject = f"{owner_name} sent you a soft pulse"
+    note_html = f'<p style="font-family:Georgia,serif;font-size:18px;color:#1F2623;font-style:italic;margin:16px 0">"{escape(note)}"</p>' if note else ""
+    inner = (
+        f'<p style="font-size:26px;margin:0 0 12px">A soft pulse, just for you.</p>'
+        f'<p style="font-family:Arial,sans-serif;font-size:14px;color:#535E56;line-height:1.7">'
+        f"Hi {escape(guardian_name)}, {escape(owner_name)} sent you a Thinking-of-You pulse — "
+        f"a small vibration that says: you crossed my mind, and I'm glad you exist.</p>"
+        f"{note_html}"
+        f'<p style="margin:24px 0"><a href="{circle_url}" style="background:#4C5D4B;color:#FBFBF9;'
+        f'padding:14px 28px;border-radius:999px;text-decoration:none;font-family:Arial,sans-serif;font-size:14px">'
+        f"Open your circle</a></p>"
+    )
+    return subject, _shell(inner)
+
+
+def owner_pulse_html(owner_name: str, guardian_name: str, note: str) -> tuple[str, str]:
+    subject = f"{guardian_name} sent you a soft pulse"
+    note_html = f'<p style="font-family:Georgia,serif;font-size:18px;color:#1F2623;font-style:italic;margin:16px 0">"{escape(note)}"</p>' if note else ""
+    inner = (
+        f'<p style="font-size:26px;margin:0 0 12px">Someone is thinking of you.</p>'
+        f'<p style="font-family:Arial,sans-serif;font-size:14px;color:#535E56;line-height:1.7">'
+        f"{escape(guardian_name)} just sent you a Thinking-of-You pulse. Nothing to answer. "
+        f"Just warmth, held.</p>"
+        f"{note_html}"
+    )
+    return subject, _shell(inner)
+
+
 def weekly_summary_html(owner_name: str, guardian_name: str, reasons_count: int, mood_state: str | None,
                         circle_url: str) -> tuple[str, str]:
     mood_line = {

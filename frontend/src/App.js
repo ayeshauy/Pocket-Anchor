@@ -8,6 +8,7 @@ import TopNav from '@/components/layout/TopNav';
 import QuickExitDock from '@/components/safety/QuickExitDock';
 import AuthModal from '@/components/auth/AuthModal';
 import Landing from '@/pages/Landing';
+import PricingPage from '@/pages/PricingPage';
 import Onboarding from '@/pages/Onboarding';
 import Dashboard from '@/pages/Dashboard';
 import HealthPage from '@/pages/HealthPage';
@@ -44,6 +45,7 @@ function Router() {
       <Routes>
         <Route path="/" element={<Landing onSignIn={() => setAuthOpen(true)} />} />
         <Route path="/safety" element={<SafetyPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/with/:slug" element={<AnchorPublic />} />
         <Route path="/guardian/accept/:token" element={<GuardianAccept />} />
         <Route path="/circle/:token" element={<CirclePage />} />

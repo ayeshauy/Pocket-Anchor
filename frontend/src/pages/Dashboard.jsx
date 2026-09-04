@@ -32,6 +32,22 @@ export default function Dashboard() {
   };
   useEffect(() => { load(); }, []);
 
+  // Link a successful Stripe checkout to this account
+  useEffect(() => {
+    const sid = new URLSearchParams(window.location.search).get('session_id');
+    if (!sid) return;
+    (async () => {
+      try {
+        await api.get(`/payments/status/${sid}`);
+        const r = await api.post('/stripe/link', { session_id: sid });
+        toast.success(`Welcome aboard — ${r.plan === 'enterprise' ? 'Duty-of-Care' : 'Nomad Pass'} is active.`);
+      } catch {
+        toast.error('Payment is still settling — refresh in a moment.');
+      }
+      window.history.replaceState({}, '', '/dashboard');
+    })();
+  }, []);
+
   const logPulse = async () => {
     try { await api.post('/mood', { state: mood, note, intensity: 5 }); setNote(''); toast.success('Pulse logged. Quietly.'); load(); }
     catch { toast.error('Could not log pulse.'); }

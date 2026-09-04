@@ -43,6 +43,16 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - **OG link previews**: `GET /api/og/{slug}` serves OG/Twitter meta + redirect to SPA; `GET /api/og/{slug}.png` generates branded 1200x630 card via PIL (Liberation Serif). Dashboard copy-link now copies the OG URL
 - Verified: invite email 202 Accepted via managed proxy, accept flips status→active, circle view + pulse back work, cron auth 401/200 + run_id idempotency confirmed, weekly summary emails sent to active guardians
 
+## Implemented (Jun 2026, iter 4) — Pricing & Stripe
+- **Stripe claimable sandbox** (Flow A) provisioned; catalog via `setup_stripe.py` (idempotent): Nomad Pass $12/mo + $99/yr, Enterprise Duty-of-Care $6/seat/mo; SaaS tax code; Stripe fully manages tax & compliance (SMP, CA account)
+- **Checkout**: `GET /api/stripe/checkout?plan=nomad-pass|nomad-pass-yearly|enterprise&seats=N` → 303 to Stripe hosted checkout; `payment_transactions` recorded before redirect; success → `/dashboard?session_id=`, auto-links subscription to the user (`POST /api/stripe/link`)
+- **Status/polling**: `GET /api/payments/status/{session_id}` (unauth, Stripe-verify fallback), `GET /api/stripe/status` (auth, subscription state), webhook `/api/stripe/webhook` (signature-verified, idempotent)
+- **Pricing page** `/pricing`: three tiers — Safety $0 free forever (never paywalled, links straight to tools), Nomad Pass with monthly/yearly toggle, Enterprise with seat slider; zero-knowledge messaging; crisis-first footer
+- **Health gating**: Nomadic Health pillar shows a gentle "The road needs a pass" upgrade card without an active subscription; Safety layer untouched (always free)
+- **Pulse emails**: owner→guardian pulses email the guardian (with circle link); guardian→owner pulses email the owner — via managed Resend templates
+- **OG mood variants**: `/api/og/:slug.png` orb now reflects latest mood state (willow/mimosa/azul)
+- **Circle page**: added owner's Anchor Link card so guardians can leave a reason directly
+
 ## Backlog
 - **P0:** Email supporter link out (Resend) when a guardian is invited; shareable OG preview card for `/with/:slug`
 - **P1:** Wearable ingest (Apple Health/Google Fit); guardian-accept flow (invited → active via emailed link)

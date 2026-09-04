@@ -33,6 +33,13 @@ export default function TopNav({ onSignIn }) {
 
         <div className="flex items-center gap-3">
           <Link
+            to="/pricing"
+            className="hidden sm:inline text-xs uppercase tracking-[0.18em] text-willow-dark hover:text-orange transition"
+            data-testid="nav-pricing-link"
+          >
+            Pricing
+          </Link>
+          <Link
             to="/safety"
             className="hidden sm:inline text-xs uppercase tracking-[0.18em] text-willow-dark hover:text-orange transition"
             data-testid="nav-safety-link"

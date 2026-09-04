@@ -13,7 +13,7 @@ from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import os, uuid, re, logging, requests, asyncio, hmac, io
-from emailer import send_email, guardian_invite_html, weekly_summary_html
+from emailer import send_email, guardian_invite_html, weekly_summary_html, pulse_notify_html, owner_pulse_html
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -24,6 +24,10 @@ db = client[os.environ['DB_NAME']]
 
 APP_URL = (os.environ.get("APP_PUBLIC_URL") or "").rstrip("/")
 CRON_SECRET = os.environ.get("WEBHOOK_CRON_SECRET", "")
+
+import stripe
+from fastapi.responses import RedirectResponse
+stripe.api_key = os.environ.get("STRIPE_SECRET_KEY") or "sk_test_emergent"
 
 EMERGENT_KEY = os.environ.get('EMERGENT_LLM_KEY')
 STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
@@ -568,7 +572,14 @@ async def toy_pulse(gid: str, payload: ToyPulseIn, request: Request):
         "created_at": now_iso(),
     }
     await db.notifications.insert_one(doc)
-    # In a full build: send email/push to guardian here.
+    # Email the guardian their Thinking-of-You pulse
+    try:
+        owner_name = user.get("sanctuary_name") or user.get("name", "your person")
+        circle_url = f"{APP_URL}/circle/{g['accept_token']}"
+        subject, html = pulse_notify_html(g["guardian_name"], owner_name, payload.note or "", circle_url)
+        await send_email(to=g["guardian_email"], subject=subject, html=html)
+    except Exception as e:
+        logger.error(f"pulse email to guardian failed: {e}")
     return {"ok": True, "message": f"Thinking-of-You sent to {g['guardian_name']}"}
 
 @api_router.get("/guardians/feed")
@@ -640,6 +651,15 @@ async def circle_pulse(token: str, payload: ToyPulseIn):
         "created_at": now_iso(),
     }
     await db.notifications.insert_one(doc)
+    # Email the owner that their guardian is thinking of them
+    try:
+        owner = await db.users.find_one({"user_id": g["owner_user_id"]}, {"_id": 0})
+        if owner and owner.get("email"):
+            subject, html = owner_pulse_html(owner.get("sanctuary_name") or owner.get("name", "friend"),
+                                             g["guardian_name"], payload.note or "")
+            await send_email(to=owner["email"], subject=subject, html=html)
+    except Exception as e:
+        logger.error(f"pulse email to owner failed: {e}")
     return {"ok": True}
 
 # ---------------- Memory Vault (memorial archive) ----------------
@@ -746,15 +766,24 @@ async def og_image(slug: str):
     from PIL import Image, ImageDraw, ImageFont
     u = await db.users.find_one({"sanctuary_slug": slug}, {"_id": 0, "email": 0})
     name = (u or {}).get("sanctuary_name") or (u or {}).get("name") or "Someone you love"
+    latest = None
+    if u:
+        latest = await db.mood_pulses.find_one({"user_id": u["user_id"]}, {"_id": 0}, sort=[("created_at", -1)])
+    mood = (latest or {}).get("state", "grounded")
+    orb_main, orb_mid = {
+        "grounded": ("#4C5D4B", "#8E9E8D"),
+        "hopeful": ("#F7B557", "#C1521E"),
+        "struggling": ("#9197AA", "#4D5468"),
+    }.get(mood, ("#4C5D4B", "#8E9E8D"))
     W, H = 1200, 630
     img = Image.new("RGB", (W, H), "#FBFBF9")
     d = ImageDraw.Draw(img)
     # Soft warmth blobs
     d.ellipse([W - 420, -180, W + 180, 420], fill="#FEF3DE")
     d.ellipse([-200, H - 260, 300, H + 240], fill="#FBEAE2")
-    # Orb
-    d.ellipse([W - 430, H // 2 - 150, W - 130, H // 2 + 150], fill="#4C5D4B")
-    d.ellipse([W - 430, H // 2 - 150, W - 250, H // 2 + 30], fill="#8E9E8D")
+    # Orb reflects the sanctuary's current weather
+    d.ellipse([W - 430, H // 2 - 150, W - 130, H // 2 + 150], fill=orb_main)
+    d.ellipse([W - 430, H // 2 - 150, W - 250, H // 2 + 30], fill=orb_mid)
     d.ellipse([W - 400, H // 2 - 120, W - 330, H // 2 - 50], fill="#FEF3DE")
     def font(size, serif=True):
         for p in ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
@@ -842,6 +871,130 @@ async def cron_weekly_summary(request: Request):
         await db.cron_runs.insert_one({"run_id": run_id, "ran_at": now_iso()})
     asyncio.create_task(run_weekly_summaries())
     return {"ok": True, "queued": True}
+
+# ---------------- Stripe subscriptions (Nomad Pass / Enterprise) ----------------
+PLANS = {
+    "nomad-pass": "nomad_pass_monthly",
+    "nomad-pass-yearly": "nomad_pass_yearly",
+    "enterprise": "enterprise_seat",
+}
+
+@api_router.get("/stripe/checkout")
+async def stripe_checkout(plan: str, seats: int = 1):
+    cfg = PLANS.get(plan)
+    if not cfg:
+        raise HTTPException(400, "Unknown plan")
+    seats = max(1, min(seats, 500))
+    prices = stripe.Price.list(lookup_keys=[cfg], active=True, limit=1).data
+    if not prices:
+        raise HTTPException(500, f"Price not found: {cfg}")
+    price = prices[0]
+    kwargs = dict(
+        line_items=[{"price": price.id, "quantity": seats}],
+        mode="subscription",
+        success_url=f"{APP_URL}/dashboard?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{APP_URL}/pricing",
+        metadata={"plan": plan},
+    )
+    try:
+        session = stripe.checkout.Session.create(**kwargs, managed_payments={"enabled": True})
+    except stripe.error.InvalidRequestError as e:
+        msg = (e.user_message or "").lower()
+        if "managed payments" in msg or "ineligible" in msg:
+            session = stripe.checkout.Session.create(
+                **kwargs, automatic_tax={"enabled": True}, billing_address_collection="required")
+        else:
+            raise
+    await db.payment_transactions.insert_one({
+        "session_id": session.id, "plan": plan, "seats": seats,
+        "amount": (price.unit_amount or 0) * seats, "currency": price.currency,
+        "status": "initiated", "payment_status": "pending",
+        "created_at": now_iso(), "updated_at": now_iso(),
+    })
+    return RedirectResponse(session.url, status_code=303)
+
+@api_router.get("/payments/status/{session_id}")
+async def payment_status(session_id: str):
+    rec = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+    if not rec:
+        raise HTTPException(404, "Transaction not found")
+    if rec.get("payment_status") != "paid":
+        try:
+            s = stripe.checkout.Session.retrieve(session_id)
+            if s.payment_status == "paid" or s.status == "complete":
+                await db.payment_transactions.update_one(
+                    {"session_id": session_id, "payment_status": {"$ne": "paid"}},
+                    {"$set": {"status": "completed", "payment_status": "paid",
+                              "stripe_subscription_id": s.subscription,
+                              "stripe_payment_intent_id": s.payment_intent,
+                              "updated_at": now_iso()}})
+                rec = await db.payment_transactions.find_one({"session_id": session_id}, {"_id": 0})
+        except stripe.error.StripeError:
+            pass
+    return {"session_id": rec["session_id"], "status": rec["status"], "payment_status": rec["payment_status"]}
+
+@api_router.post("/stripe/link")
+async def stripe_link(request: Request):
+    user = await require_user(request)
+    body = await request.json()
+    sid = (body or {}).get("session_id")
+    if not sid:
+        raise HTTPException(400, "session_id required")
+    rec = await db.payment_transactions.find_one({"session_id": sid}, {"_id": 0})
+    if not rec:
+        raise HTTPException(404, "Transaction not found")
+    if rec.get("payment_status") != "paid":
+        s = stripe.checkout.Session.retrieve(sid)
+        if s.payment_status == "paid" or s.status == "complete":
+            await db.payment_transactions.update_one(
+                {"session_id": sid, "payment_status": {"$ne": "paid"}},
+                {"$set": {"status": "completed", "payment_status": "paid",
+                          "stripe_subscription_id": s.subscription, "updated_at": now_iso()}})
+            rec = await db.payment_transactions.find_one({"session_id": sid}, {"_id": 0})
+    if rec.get("payment_status") != "paid":
+        raise HTTPException(402, "Payment not completed")
+    await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"subscription": {
+        "active": True, "plan": rec.get("plan"),
+        "stripe_subscription_id": rec.get("stripe_subscription_id"),
+        "linked_at": now_iso(),
+    }}})
+    return {"ok": True, "plan": rec.get("plan")}
+
+@api_router.get("/stripe/status")
+async def stripe_status(request: Request):
+    user = await require_user(request)
+    sub = user.get("subscription") or {}
+    return {"active": bool(sub.get("active")), "plan": sub.get("plan")}
+
+@api_router.post("/stripe/webhook")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig = request.headers.get("stripe-signature", "")
+    try:
+        event = stripe.Webhook.construct_event(payload, sig, os.environ.get("STRIPE_WEBHOOK_SECRET", ""))
+    except Exception:
+        raise HTTPException(400, "Invalid signature")
+    obj, t = event["data"]["object"], event["type"]
+    if t == "checkout.session.completed":
+        await db.payment_transactions.update_one(
+            {"session_id": obj["id"], "payment_status": {"$ne": "paid"}},
+            {"$set": {"status": "completed", "payment_status": obj.get("payment_status", "paid"),
+                      "stripe_subscription_id": obj.get("subscription"),
+                      "stripe_payment_intent_id": obj.get("payment_intent"),
+                      "updated_at": now_iso()}})
+    elif t == "checkout.session.async_payment_succeeded":
+        await db.payment_transactions.update_one({"session_id": obj["id"]},
+            {"$set": {"payment_status": "paid", "updated_at": now_iso()}})
+    elif t == "checkout.session.async_payment_failed":
+        await db.payment_transactions.update_one({"session_id": obj["id"]},
+            {"$set": {"status": "failed", "payment_status": "failed", "updated_at": now_iso()}})
+    elif t == "checkout.session.expired":
+        await db.payment_transactions.update_one({"session_id": obj["id"]},
+            {"$set": {"status": "expired", "payment_status": "expired", "updated_at": now_iso()}})
+    elif t == "charge.refunded":
+        await db.payment_transactions.update_one({"stripe_payment_intent_id": obj.get("payment_intent")},
+            {"$set": {"status": "refunded", "payment_status": "refunded", "updated_at": now_iso()}})
+    return {"status": "ok"}
 
 # ---------------- Health check ----------------
 @api_router.get("/")

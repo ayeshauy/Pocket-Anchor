@@ -126,6 +126,22 @@ export default function CirclePage() {
             {circle.guardian_name}, your pulse carries no demand. It simply says: you crossed my mind, and I'm glad you exist.
           </p>
         </div>
+
+        {circle.owner_slug && (
+          <div className="mt-6 card-organic p-6" data-testid="circle-anchor-card">
+            <p className="text-xs uppercase tracking-[0.28em] text-willow-light mb-1">Their Anchor Link</p>
+            <p className="font-serif text-2xl text-willow-dark">Give {circle.sanctuary_name} a reason to stay.</p>
+            <p className="text-sm text-[#535E56] mt-2 leading-relaxed">
+              A photo, a voice note, a song, a single sentence — it lands on their Wall of Hope,
+              tucked away for the day they need it most.
+            </p>
+            <a href={`/with/${circle.owner_slug}`}>
+              <Button data-testid="circle-leave-reason-btn" className="mt-4 rounded-full bg-orange text-cloud hover:bg-orange/90 px-7">
+                Leave a reason →
+              </Button>
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

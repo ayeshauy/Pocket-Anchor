@@ -8,6 +8,30 @@ import ClinicMap from '@/components/health/ClinicMap';
 import { MapPin, Phone, Clock, Globe, Pill, X, Plus, Stethoscope } from 'lucide-react';
 
 export default function HealthPage() {
+  const [sub, setSub] = useState(null);
+  useEffect(() => { api.get('/stripe/status').then(setSub).catch(() => setSub({ active: false })); }, []);
+
+  if (sub && !sub.active) {
+    return (
+      <div className="max-w-2xl mx-auto px-5 py-20 text-center" data-testid="health-upgrade-gate">
+        <div className="card-organic p-10 relative overflow-hidden">
+          <div className="absolute -top-16 -right-16 w-48 h-48 rounded-full bg-mimosa-soft/70 blur-3xl" />
+          <p className="text-xs uppercase tracking-[0.28em] text-willow-light relative">Nomad Pass</p>
+          <h1 className="font-serif text-4xl text-willow-dark font-light mt-3 relative">The road needs a pass.</h1>
+          <p className="text-[#535E56] mt-4 leading-relaxed relative">
+            The Spatial Health Guide, Medical Vault, and prescription translation travel with a Nomad Pass —
+            $12/month or $99/year. Your Sanctuary stays with you either way.
+          </p>
+          <a href="/pricing">
+            <Button data-testid="health-upgrade-cta" className="mt-6 rounded-full bg-orange text-cloud px-8 h-12 relative">
+              See Nomad Pass →
+            </Button>
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-5 lg:px-10 py-10">
       <p className="text-xs uppercase tracking-[0.28em] text-willow-light">Nomadic Health & Medical Vault</p>
