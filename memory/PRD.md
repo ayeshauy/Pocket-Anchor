@@ -53,6 +53,10 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - **OG mood variants**: `/api/og/:slug.png` orb now reflects latest mood state (willow/mimosa/azul)
 - **Circle page**: added owner's Anchor Link card so guardians can leave a reason directly
 
+## Deployment readiness (Jun 2026)
+- deployment_agent health check: **PASS**, zero findings — compilation, env vars, CORS, auth redirect, supervisor config, query limits, .gitignore all verified
+- Stripe sandbox status: `unclaimed` (onboarding link expires 2026-09-11); live keys auto-swap after user claims + KYC
+
 ## Backlog
 - **P0:** Email supporter link out (Resend) when a guardian is invited; shareable OG preview card for `/with/:slug`
 - **P1:** Wearable ingest (Apple Health/Google Fit); guardian-accept flow (invited → active via emailed link)
