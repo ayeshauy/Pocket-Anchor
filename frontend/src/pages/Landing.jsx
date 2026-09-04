@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import MoodPulseOrb from '@/components/sanctuary/MoodPulseOrb';
+import LiveSandbox from '@/components/landing/LiveSandbox';
 import { API } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { HeartHandshake, Globe2, ShieldCheck, Lock, DoorOpen, Compass, ArrowRight } from 'lucide-react';
@@ -148,6 +149,9 @@ export default function Landing({ onSignIn }) {
           })}
         </div>
       </section>
+
+      {/* LIVE SANDBOX */}
+      <LiveSandbox />
 
       {/* SECTION 2 — ABOUT */}
       <section id="about" className="py-20 bg-white/60 border-y border-willow/10" data-testid="section-about">

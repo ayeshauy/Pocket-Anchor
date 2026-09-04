@@ -1003,6 +1003,35 @@ async def stripe_webhook(request: Request):
             {"$set": {"status": "refunded", "payment_status": "refunded", "updated_at": now_iso()}})
     return {"status": "ok"}
 
+# ---------------- Demo: pharmacy stock sandbox (public) ----------------
+PHARMACY_DEMO = {
+    "metformin": {"brands": {"Thailand": "Glucophage", "Singapore": "Glucophage XR", "Mexico": "Dabex", "Portugal": "Glifage", "Turkey": "Glifor", "Costa Rica": "Glucophage"}},
+    "sertraline": {"brands": {"Thailand": "Zoloft", "Singapore": "Zoloft", "Mexico": "Altruline", "Portugal": "Zoloft", "Turkey": "Lustral", "Costa Rica": "Zoloft"}},
+    "azithromycin": {"brands": {"Thailand": "Zithromax", "Singapore": "Zithromax", "Mexico": "Azitromicina MK", "Portugal": "Zithromax", "Turkey": "Azitro", "Costa Rica": "Zitromax"}},
+    "cetirizine": {"brands": {"Thailand": "Zyrtec", "Singapore": "Zyrtec", "Mexico": "Zyrtec", "Portugal": "Zyrtec", "Turkey": "Zyrtec", "Costa Rica": "Zyrtec"}},
+}
+
+@api_router.get("/demo/pharmacy")
+async def demo_pharmacy(med: str = "metformin"):
+    """Public landing-page sandbox: local brand names + demo stock per country."""
+    key = (med or "").strip().lower()
+    entry = PHARMACY_DEMO.get(key)
+    if not entry:
+        return {"med": med, "found": False, "supported": list(PHARMACY_DEMO.keys())}
+    import random
+    rnd = random.Random(key)  # deterministic per med
+    rows = []
+    for country, brand in entry["brands"].items():
+        stock = rnd.choice(["In stock", "In stock", "Low stock", "Out of stock"])
+        rows.append({
+            "country": country,
+            "brand": brand,
+            "stock": stock,
+            "price_usd": round(rnd.uniform(3.5, 24.0), 2),
+            "otc": rnd.choice([True, False]),
+        })
+    return {"med": key, "found": True, "results": rows}
+
 # ---------------- Health check ----------------
 @api_router.get("/")
 async def root():

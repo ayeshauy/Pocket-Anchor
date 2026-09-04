@@ -60,6 +60,11 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - Smooth scroll + scroll-padding for anchored sections; landing nav also renders on /pricing and /safety
 - Verified: all nav testids present, FAQ #3 opens, plan buttons 303 to Stripe, Quick Exit decoy fires from nav button
 
+## Implemented (Jun 2026, iter 6) — Live Sandbox + new logo
+- **Live Sandbox** on landing (`LiveSandbox.jsx`, between Platform and About): three no-account demos — in-browser voice recorder (MediaRecorder, local playback, zero upload), pharmacy stock inspector (`GET /api/demo/pharmacy?med=` — public, deterministic demo data, local brand names across 6 countries), and a live Survivor Navigator chat streaming from `/api/ai/chat` with suggestion chips
+- **New official logo** (dark willow rounded square, white anchor) replaced everywhere: nav, auth modal, favicon, OG card asset (`/app/backend/assets/logo.png`)
+- Verified: pharmacy table renders with stock/price/Rx, navigator streams a real Claude response, voice tab recorder UI present, logo in nav
+
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL
