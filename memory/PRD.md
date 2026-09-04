@@ -55,7 +55,7 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings — compilation, env vars, CORS, auth redirect, supervisor config, query limits, .gitignore all verified
-- Stripe sandbox status: `unclaimed` (onboarding link expires 2026-09-11); live keys auto-swap after user claims + KYC
+- Stripe sandbox status: **claimed** (user completed claim); live keys pending Stripe KYC approval — auto-swap + auto-redeploy on `account_activated`
 
 ## Backlog
 - **P0:** Email supporter link out (Resend) when a guardian is invited; shareable OG preview card for `/with/:slug`
