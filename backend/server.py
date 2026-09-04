@@ -785,6 +785,13 @@ async def og_image(slug: str):
     d.ellipse([W - 430, H // 2 - 150, W - 130, H // 2 + 150], fill=orb_main)
     d.ellipse([W - 430, H // 2 - 150, W - 250, H // 2 + 30], fill=orb_mid)
     d.ellipse([W - 400, H // 2 - 120, W - 330, H // 2 - 50], fill="#FEF3DE")
+    # Official anchor logo, tucked in the corner
+    try:
+        logo = Image.open(Path(__file__).parent / "assets" / "logo.png").convert("RGBA")
+        logo.thumbnail((72, 72))
+        img.paste(logo, (W - 130, H - 110), logo)
+    except Exception as e:
+        logger.error(f"og logo paste error: {e}")
     def font(size, serif=True):
         for p in ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
                   "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",

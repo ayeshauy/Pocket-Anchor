@@ -15,7 +15,7 @@ export default function AuthModal({ open, onOpenChange }) {
           <div className="absolute -bottom-20 -left-20 w-64 h-64 rounded-full bg-azul-light/40 blur-3xl pointer-events-none" />
           <DialogHeader className="relative">
             <div className="w-12 h-12 rounded-full bg-willow/10 flex items-center justify-center mb-4">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-mimosa to-orange" />
+              <img src="/logo.png" alt="" className="w-7 h-7" />
             </div>
             <DialogTitle className="font-serif text-3xl text-willow-dark font-light leading-tight">
               A quiet doorway

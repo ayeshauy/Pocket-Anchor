@@ -12,11 +12,7 @@ export default function TopNav({ onSignIn }) {
     <header className="sticky top-0 z-30 backdrop-blur-xl bg-cloud/85 border-b border-willow/10">
       <div className="max-w-7xl mx-auto px-5 lg:px-8 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5" data-testid="brand-link">
-          <div className="relative w-8 h-8">
-            <div className="absolute inset-0 rounded-full bg-gradient-to-br from-mimosa to-orange" />
-            <div className="absolute inset-1.5 rounded-full bg-cloud" />
-            <div className="absolute inset-2.5 rounded-full bg-willow" />
-          </div>
+          <img src="/logo.png" alt="Pocket Anchor" className="w-8 h-8 rounded-lg" data-testid="brand-logo" />
           <div className="leading-none">
             <p className="font-serif text-xl text-willow-dark">Pocket Anchor</p>
             <p className="text-[10px] uppercase tracking-[0.24em] text-willow-light">a quiet place</p>

@@ -56,6 +56,8 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings — compilation, env vars, CORS, auth redirect, supervisor config, query limits, .gitignore all verified
 - Stripe sandbox status: **claimed** (user completed claim); live keys pending Stripe KYC approval — auto-swap + auto-redeploy on `account_activated`
+- **PENDING — post-approval $0 verification**: once Stripe approves, confirm live keys landed in backend/.env (rk_live/sk_live), create a live-mode checkout session, and confirm it opens. Run without prompting.
+- Official logo added: anchor icon at /app/frontend/public/logo.png (nav, auth modal, favicon, OG cards)
 
 ## Backlog
 - **P0:** Email supporter link out (Resend) when a guardian is invited; shareable OG preview card for `/with/:slug`
