@@ -12,7 +12,8 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
-import os, uuid, re, logging, requests, asyncio
+import os, uuid, re, logging, requests, asyncio, hmac, io
+from emailer import send_email, guardian_invite_html, weekly_summary_html
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -20,6 +21,9 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+APP_URL = (os.environ.get("APP_PUBLIC_URL") or "").rstrip("/")
+CRON_SECRET = os.environ.get("WEBHOOK_CRON_SECRET", "")
 
 EMERGENT_KEY = os.environ.get('EMERGENT_LLM_KEY')
 STORAGE_BASE = (os.environ.get("INTEGRATION_PROXY_URL") or "").strip() or "https://integrations.emergentagent.com"
@@ -507,10 +511,10 @@ async def invite_guardian(payload: GuardianInviteIn, request: Request):
     user = await require_user(request)
     if not payload.email or "@" not in payload.email:
         raise HTTPException(400, "Valid email required")
-    # Upsert — re-inviting resets status
     existing = await db.guardians.find_one({"owner_user_id": user["user_id"], "guardian_email": payload.email.lower()}, {"_id": 0})
     if existing:
         return existing
+    token = uuid.uuid4().hex + uuid.uuid4().hex
     doc = {
         "id": str(uuid.uuid4()),
         "owner_user_id": user["user_id"],
@@ -518,10 +522,21 @@ async def invite_guardian(payload: GuardianInviteIn, request: Request):
         "guardian_email": payload.email.lower(),
         "guardian_name": payload.name or payload.email.split("@")[0],
         "status": "invited",  # invited | active
+        "accept_token": token,
         "created_at": now_iso(),
     }
     await db.guardians.insert_one(doc)
     doc.pop("_id", None)
+    # Email the invite (fixed template, recipient from server-side record — G4)
+    accept_url = f"{APP_URL}/guardian/accept/{token}"
+    circle_url = f"{APP_URL}/circle/{token}"
+    subject, html = guardian_invite_html(user.get("name", ""), user.get("sanctuary_name") or user["name"], accept_url, circle_url)
+    try:
+        email_id = await send_email(to=payload.email.lower(), subject=subject, html=html)
+        doc["emailed"] = bool(email_id)
+    except Exception as e:
+        logger.error(f"guardian invite email failed: {e}")
+        doc["emailed"] = False
     return doc
 
 @api_router.get("/guardians")
@@ -572,6 +587,60 @@ async def guardian_feed(request: Request):
         })
     items.sort(key=lambda x: x.get("created_at") or "", reverse=True)
     return items[:40]
+
+# ---------------- Guardian accept + Circle (supporter portal) ----------------
+@api_router.get("/guardians/accept/{token}")
+async def accept_guardian(token: str):
+    g = await db.guardians.find_one({"accept_token": token}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Invite not found")
+    await db.guardians.update_one({"id": g["id"]}, {"$set": {"status": "active", "accepted_at": now_iso()}})
+    owner = await db.users.find_one({"user_id": g["owner_user_id"]}, {"_id": 0, "email": 0})
+    return {"ok": True, "guardian_name": g["guardian_name"],
+            "sanctuary_name": (owner or {}).get("sanctuary_name") or (owner or {}).get("name", "your person"),
+            "circle_url": f"/circle/{token}"}
+
+@api_router.get("/circle/{token}")
+async def circle_view(token: str):
+    """Supporter portal: silent mood status of their person. Token-gated, no login."""
+    g = await db.guardians.find_one({"accept_token": token, "status": "active"}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Circle not found or invite not yet accepted")
+    owner = await db.users.find_one({"user_id": g["owner_user_id"]}, {"_id": 0, "email": 0})
+    latest = await db.mood_pulses.find_one({"user_id": g["owner_user_id"]}, {"_id": 0}, sort=[("created_at", -1)])
+    pulses_week = await db.mood_pulses.count_documents({
+        "user_id": g["owner_user_id"],
+        "created_at": {"$gte": (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()}
+    })
+    reasons_week = await db.hope_reasons.count_documents({
+        "user_id": g["owner_user_id"],
+        "created_at": {"$gte": (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()}
+    })
+    return {
+        "guardian_name": g["guardian_name"],
+        "sanctuary_name": (owner or {}).get("sanctuary_name") or (owner or {}).get("name", "your person"),
+        "latest_mood": (latest or {}).get("state"),
+        "pulses_this_week": pulses_week,
+        "reasons_this_week": reasons_week,
+        "owner_slug": g.get("owner_slug"),
+    }
+
+@api_router.post("/circle/{token}/pulse")
+async def circle_pulse(token: str, payload: ToyPulseIn):
+    g = await db.guardians.find_one({"accept_token": token, "status": "active"}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Circle not found or invite not yet accepted")
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": g["owner_user_id"],
+        "kind": "toy_pulse",
+        "guardian_id": g["id"],
+        "guardian_name": g["guardian_name"],
+        "note": payload.note or "",
+        "created_at": now_iso(),
+    }
+    await db.notifications.insert_one(doc)
+    return {"ok": True}
 
 # ---------------- Memory Vault (memorial archive) ----------------
 @api_router.post("/memory")
@@ -670,6 +739,109 @@ async def resources(country: Optional[str] = None, kind: Optional[str] = None):
     if kind:
         items = [r for r in items if kind.lower() in r["type"].lower()]
     return items
+
+# ---------------- OG preview (link unfurling) ----------------
+@api_router.get("/og/{slug}.png")
+async def og_image(slug: str):
+    from PIL import Image, ImageDraw, ImageFont
+    u = await db.users.find_one({"sanctuary_slug": slug}, {"_id": 0, "email": 0})
+    name = (u or {}).get("sanctuary_name") or (u or {}).get("name") or "Someone you love"
+    W, H = 1200, 630
+    img = Image.new("RGB", (W, H), "#FBFBF9")
+    d = ImageDraw.Draw(img)
+    # Soft warmth blobs
+    d.ellipse([W - 420, -180, W + 180, 420], fill="#FEF3DE")
+    d.ellipse([-200, H - 260, 300, H + 240], fill="#FBEAE2")
+    # Orb
+    d.ellipse([W - 430, H // 2 - 150, W - 130, H // 2 + 150], fill="#4C5D4B")
+    d.ellipse([W - 430, H // 2 - 150, W - 250, H // 2 + 30], fill="#8E9E8D")
+    d.ellipse([W - 400, H // 2 - 120, W - 330, H // 2 - 50], fill="#FEF3DE")
+    def font(size, serif=True):
+        for p in ("/usr/share/fonts/truetype/liberation/LiberationSerif-Regular.ttf",
+                  "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+                  "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+                  "/usr/share/fonts/truetype/freefont/FreeSans.ttf"):
+            if os.path.exists(p):
+                return ImageFont.truetype(p, size)
+        return ImageFont.load_default()
+    try:
+        f_eyebrow = font(26); f_h1 = font(72); f_sub = font(30); f_brand = font(24)
+        d.text((90, 100), "A  Q U I E T   D O O R W A Y", font=f_eyebrow, fill="#8E9E8D")
+        d.text((86, 160), "Give", font=f_h1, fill="#1F2623")
+        d.text((86 + d.textlength("Give ", font=f_h1), 160), name, font=f_h1, fill="#C1521E")
+        d.text((86, 250), "a reason to stay.", font=f_h1, fill="#1F2623")
+        d.text((90, 360), "A photo. A voice note. A song they used to hum.", font=f_sub, fill="#535E56")
+        d.text((90, 400), "No account. No likes. No read receipts.", font=f_sub, fill="#535E56")
+        d.text((90, H - 90), "Pocket Anchor", font=f_brand, fill="#4C5D4B")
+    except Exception as e:
+        logger.error(f"og font error: {e}")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return Response(content=buf.read(), media_type="image/png",
+                    headers={"Cache-Control": "public, max-age=3600"})
+
+@api_router.get("/og/{slug}")
+async def og_page(slug: str):
+    """Serves OG meta for chat/crawler unfurls, then redirects humans to the SPA."""
+    u = await db.users.find_one({"sanctuary_slug": slug}, {"_id": 0, "email": 0})
+    name = (u or {}).get("sanctuary_name") or (u or {}).get("name") or "Someone you love"
+    img = f"{APP_URL}/api/og/{slug}.png"
+    spa = f"{APP_URL}/with/{slug}"
+    html = f"""<!doctype html><html><head>
+<meta charset="utf-8"/>
+<title>Give {name} a reason to stay · Pocket Anchor</title>
+<meta property="og:title" content="Give {name} a reason to stay"/>
+<meta property="og:description" content="Leave a soft memory — a photo, a voice note, a song. No account, no likes, no read receipts."/>
+<meta property="og:image" content="{img}"/>
+<meta property="og:url" content="{spa}"/>
+<meta property="og:type" content="website"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta http-equiv="refresh" content="0;url={spa}"/>
+</head><body style="background:#FBFBF9;font-family:Georgia,serif;text-align:center;padding-top:20vh">
+<p style="color:#4C5D4B">Opening {name}'s sanctuary… <a href="{spa}" style="color:#C1521E">continue</a></p>
+</body></html>"""
+    return Response(content=html, media_type="text/html")
+
+# ---------------- Weekly soft summary cron ----------------
+async def run_weekly_summaries():
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    owners = await db.guardians.distinct("owner_user_id", {"status": "active"})
+    for owner_id in owners:
+        owner = await db.users.find_one({"user_id": owner_id}, {"_id": 0})
+        if not owner:
+            continue
+        gs = await db.guardians.find({"owner_user_id": owner_id, "status": "active"}, {"_id": 0}).to_list(50)
+        reasons = await db.hope_reasons.count_documents({"user_id": owner_id, "created_at": {"$gte": week_ago}})
+        latest = await db.mood_pulses.find_one({"user_id": owner_id}, {"_id": 0}, sort=[("created_at", -1)])
+        mood_state = (latest or {}).get("state")
+        owner_name = owner.get("sanctuary_name") or owner.get("name", "your person")
+        for g in gs:
+            circle_url = f"{APP_URL}/circle/{g['accept_token']}"
+            subject, html = weekly_summary_html(owner_name, g["guardian_name"], reasons, mood_state, circle_url)
+            try:
+                await send_email(to=g["guardian_email"], subject=subject, html=html)
+            except Exception as e:
+                logger.error(f"weekly summary to {g['guardian_email']} failed: {e}")
+
+@api_router.post("/cron/weekly-summary")
+async def cron_weekly_summary(request: Request):
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    auth = request.headers.get("authorization", "")
+    token = auth[7:] if auth.lower().startswith("bearer ") else ""
+    if not token or not CRON_SECRET or not hmac.compare_digest(token, CRON_SECRET):
+        raise HTTPException(401, "Unauthorized")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "Invalid body")
+    run_id = body.get("run_id") or request.headers.get("x-webhook-id")
+    if run_id:
+        if await db.cron_runs.find_one({"run_id": run_id}):
+            return {"ok": True, "duplicate": True}
+        await db.cron_runs.insert_one({"run_id": run_id, "ran_at": now_iso()})
+    asyncio.create_task(run_weekly_summaries())
+    return {"ok": True, "queued": True}
 
 # ---------------- Health check ----------------
 @api_router.get("/")

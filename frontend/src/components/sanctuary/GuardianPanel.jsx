@@ -3,7 +3,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { UserPlus, Bell, Heart, Send, X, Flame } from 'lucide-react';
+import { UserPlus, Bell, Heart, Send, X, Flame, Copy } from 'lucide-react';
 
 export default function GuardianPanel() {
   const [guardians, setGuardians] = useState([]);
@@ -84,6 +84,17 @@ export default function GuardianPanel() {
                 <Button data-testid={`pulse-btn-${g.id}`} onClick={() => pulse(g.id, g.guardian_name)} size="sm" className="rounded-full bg-mimosa text-willow-dark hover:bg-mimosa-dark hover:text-cloud">
                   <Flame className="w-3.5 h-3.5" />
                 </Button>
+                <button
+                  data-testid={`copy-accept-${g.id}`}
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/guardian/accept/${g.accept_token}`);
+                    toast.success('Accept link copied.');
+                  }}
+                  title="Copy accept link"
+                  className="text-willow-light hover:text-willow"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
                 <button onClick={() => remove(g.id)} className="text-willow-light hover:text-orange"><X className="w-4 h-4" /></button>
               </div>
             </div>

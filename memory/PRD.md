@@ -36,6 +36,13 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - **Guardian Invites + Thinking-of-You Pulse**: `POST/GET/DELETE /api/guardians`, `POST /api/guardians/:id/pulse`, `GET /api/guardians/feed`; `GuardianPanel.jsx` dashboard tab with invite form + supporter notification feed
 - **Memory Vault**: `POST/GET/DELETE /api/memory`; `MemoryVault.jsx` dashboard tab — photo/voice/video/letter kinds with media upload, person attribution
 
+## Implemented (Jun 2026, iter 3)
+- **Resend managed email** (`/app/backend/emailer.py`, G1-G5 guardrail gate on every send): guardian invite email with accept + circle links, weekly soft summary digest
+- **Guardian accept flow**: `accept_token` on invites; `GET /api/guardians/accept/{token}` flips invited→active; public supporter portal `/circle/{token}` (silent mood weather, weekly counters, Thinking-of-You pulse back, Willow Grove day prompt)
+- **Weekly soft summary cron**: `.emergent/crons.yml` Sundays 9am UTC → `POST /api/cron/weekly-summary` (Bearer WEBHOOK_CRON_SECRET, constant-time compare, run_id idempotency, asyncio background handoff)
+- **OG link previews**: `GET /api/og/{slug}` serves OG/Twitter meta + redirect to SPA; `GET /api/og/{slug}.png` generates branded 1200x630 card via PIL (Liberation Serif). Dashboard copy-link now copies the OG URL
+- Verified: invite email 202 Accepted via managed proxy, accept flips status→active, circle view + pulse back work, cron auth 401/200 + run_id idempotency confirmed, weekly summary emails sent to active guardians
+
 ## Backlog
 - **P0:** Email supporter link out (Resend) when a guardian is invited; shareable OG preview card for `/with/:slug`
 - **P1:** Wearable ingest (Apple Health/Google Fit); guardian-accept flow (invited → active via emailed link)

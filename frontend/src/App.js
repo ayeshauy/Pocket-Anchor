@@ -13,6 +13,8 @@ import Dashboard from '@/pages/Dashboard';
 import HealthPage from '@/pages/HealthPage';
 import SafetyPage from '@/pages/SafetyPage';
 import AnchorPublic from '@/pages/AnchorPublic';
+import GuardianAccept from '@/pages/GuardianAccept';
+import CirclePage from '@/pages/CirclePage';
 import AuthCallback from '@/pages/AuthCallback';
 
 function Protected({ children, needsSanctuary = true }) {
@@ -30,7 +32,9 @@ function Router() {
   // Handle OAuth callback synchronously (fragment includes session_id)
   if (location.hash?.includes('session_id=')) return <AuthCallback />;
 
-  const isPublicAnchor = location.pathname.startsWith('/with/');
+  const isPublicAnchor = location.pathname.startsWith('/with/')
+    || location.pathname.startsWith('/circle/')
+    || location.pathname.startsWith('/guardian/');
   const showNav = !isPublicAnchor;
 
   return (
@@ -41,6 +45,8 @@ function Router() {
         <Route path="/" element={<Landing onSignIn={() => setAuthOpen(true)} />} />
         <Route path="/safety" element={<SafetyPage />} />
         <Route path="/with/:slug" element={<AnchorPublic />} />
+        <Route path="/guardian/accept/:token" element={<GuardianAccept />} />
+        <Route path="/circle/:token" element={<CirclePage />} />
         <Route path="/onboarding" element={
           <ProtectedNoSanctuary><Onboarding /></ProtectedNoSanctuary>
         } />

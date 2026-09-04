@@ -43,9 +43,9 @@ export default function Dashboard() {
   };
 
   const copyLink = () => {
-    const link = `${window.location.origin}/with/${user.sanctuary_slug}`;
+    const link = `${window.location.origin}/api/og/${user.sanctuary_slug}`;
     navigator.clipboard.writeText(link);
-    toast.success('Anchor link copied.');
+    toast.success('Anchor link copied — it shows a warm preview in chats.');
   };
 
   const mood14 = last14Days(pulses);

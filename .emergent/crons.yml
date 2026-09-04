@@ -1,0 +1,8 @@
+crons:
+  - name: weekly-soft-summary
+    description: "Emails each guardian a gentle weekly summary of their person's sanctuary (mood weather + reasons to stay)"
+    cron: "0 9 * * 0"
+    endpoint: "{{BASE_URL}}/api/cron/weekly-summary"
+    method: POST
+    # Cron endpoints must ack 2xx immediately; enqueue/background the actual work.
+    enabled: true
