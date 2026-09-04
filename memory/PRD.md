@@ -65,6 +65,7 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - **New official logo** (dark willow rounded square, white anchor) replaced everywhere: nav, auth modal, favicon, OG card asset (`/app/backend/assets/logo.png`)
 - Verified: pharmacy table renders with stock/price/Rx, navigator streams a real Claude response, voice tab recorder UI present, logo in nav
 - **Platform section rebuilt** (iter 6b): new header "Every feature belongs to one of three" + deliberate-split subtitle; each pillar card now carries italic tagline, 5-item "What it includes" checklist with notes, and interactive module chips (♡ Anchor / ◉ Health Guide / ⚑ Resources sets)
+- **How It Works rebuilt** (iter 6c): embedded 2-min product demo video (`/demo.mp4`, served from public) in a framed player with caption, plus 3 quick-reference chapter summaries (Zero-Knowledge Sanctuary Setup / Cross-Border Nomadic Healthcare / Zero-Auth Survivor & IPV Safety). Source MP4 was an unsupported codec for browsers — transcoded to H.264/AAC + faststart (13.4MB → 3.5MB) via imageio-ffmpeg; also added full-length VP8/Vorbis WebM source (11.3MB) for codec-less Chromium; `<video>` uses dual `<source>` tags (webm first, mp4 fallback)
 
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings

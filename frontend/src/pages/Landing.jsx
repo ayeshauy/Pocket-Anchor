@@ -6,7 +6,7 @@ import MoodPulseOrb from '@/components/sanctuary/MoodPulseOrb';
 import LiveSandbox from '@/components/landing/LiveSandbox';
 import { API } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { HeartHandshake, Globe2, ShieldCheck, Lock, DoorOpen, Compass, ArrowRight, Check } from 'lucide-react';
+import { HeartHandshake, Globe2, ShieldCheck, Lock, DoorOpen, Compass, ArrowRight, Check, Clapperboard } from 'lucide-react';
 
 const PILLARS = [
   {
@@ -59,10 +59,31 @@ const PILLARS = [
   },
 ];
 
-const STEPS = [
-  { n: '01', t: 'Client-Side Encryption', d: 'Your data is encrypted directly in your browser using AES-256 before touching any server.' },
-  { n: '02', t: 'Zero-Barrier Access', d: 'Instant crisis access with zero authentication requirements, one-tap quick-exit safety controls, and discreet camouflage UI.' },
-  { n: '03', t: 'Seamless Care', d: 'From local medicine translations while backpacking to silent check-ins on low-energy days, Anchor adapts to your immediate context.' },
+const CHAPTERS = [
+  {
+    n: '01',
+    t: 'Zero-Knowledge Sanctuary Setup',
+    points: [
+      'Instant deployment of custom Anchor Links (/with/:slug) and low-stimulation communication channels.',
+      'Send low-energy "Silent Hugs" and configure private journal permission locks without triggering notifications.',
+    ],
+  },
+  {
+    n: '02',
+    t: 'Cross-Border Nomadic Healthcare',
+    points: [
+      'Instant mapping of safe-haven clinics, medical providers, and real-time local pharmacy inventory.',
+      'Small Language Model (SLM) diagnostic engine converts international prescription names into exact local equivalents with optional USDC cross-border settlement.',
+    ],
+  },
+  {
+    n: '03',
+    t: 'Zero-Auth Survivor & IPV Safety',
+    points: [
+      'Immediate, non-custodial access to crisis shelters, legal aid, and hotlines with zero account registration.',
+      'Browser-level EXIF metadata stripping and client-side AES-256-GCM file encryption for evidence vaults with one-tap quick-exit controls.',
+    ],
+  },
 ];
 
 const AUDIENCES = [
@@ -221,15 +242,57 @@ export default function Landing({ onSignIn }) {
       {/* SECTION 3 — HOW IT WORKS */}
       <section id="how-it-works" className="max-w-6xl mx-auto px-5 lg:px-10 py-20" data-testid="section-how-it-works">
         <p className="text-xs uppercase tracking-[0.3em] text-willow-light">How It Works</p>
-        <h2 className="font-serif text-4xl md:text-5xl text-willow-dark font-light mt-3">Three quiet steps.</h2>
-        <div className="grid md:grid-cols-3 gap-5 mt-12">
-          {STEPS.map((s) => (
-            <div key={s.n} className="card-organic p-7" data-testid={`step-${s.n}`}>
-              <p className="font-mono text-xs text-orange">{s.n}</p>
-              <h3 className="font-serif text-2xl text-willow-dark mt-3">{s.t}</h3>
-              <p className="mt-2 text-sm text-[#535E56] leading-relaxed">{s.d}</p>
+        <h2 className="font-serif text-4xl md:text-5xl text-willow-dark font-light mt-3">How Pocket Anchor works.</h2>
+        <p className="mt-4 text-[#535E56] max-w-2xl leading-relaxed">
+          See the platform in action, or read the quick reference summaries below.
+        </p>
+
+        {/* Video frame */}
+        <div className="mt-10" data-testid="demo-video-frame">
+          <div className="relative rounded-3xl overflow-hidden border border-willow/15 bg-willow-dark shadow-xl">
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-cloud/10">
+              <span className="w-2.5 h-2.5 rounded-full bg-aperol/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-mimosa/80" />
+              <span className="w-2.5 h-2.5 rounded-full bg-willow-light/60" />
+              <span className="ml-3 font-mono text-[11px] text-cloud/60">2-minute product demo</span>
             </div>
-          ))}
+            <video
+              data-testid="demo-video"
+              controls
+              playsInline
+              preload="metadata"
+              className="w-full aspect-video bg-willow-dark"
+            >
+              <source src="/demo.webm" type="video/webm" />
+              <source src="/demo.mp4" type="video/mp4" />
+            </video>
+          </div>
+          <p className="mt-3 text-center text-xs text-willow-light">
+            The summaries below provide a text alternative and quick reference for the product demonstration.
+          </p>
+        </div>
+
+        {/* Quick reference summaries matching video chapters */}
+        <div className="mt-12">
+          <p className="text-[11px] uppercase tracking-[0.24em] text-willow-light mb-5 flex items-center gap-2">
+            <Clapperboard className="w-3.5 h-3.5 text-orange" /> Quick reference summaries · matching video chapters
+          </p>
+          <div className="grid md:grid-cols-3 gap-5">
+            {CHAPTERS.map((c) => (
+              <div key={c.n} className="card-organic p-7" data-testid={`chapter-${c.n}`}>
+                <p className="font-mono text-xs text-orange">{c.n}</p>
+                <h3 className="font-serif text-2xl text-willow-dark mt-2 leading-tight">{c.t}</h3>
+                <ul className="mt-4 space-y-3">
+                  {c.points.map((pt) => (
+                    <li key={pt.slice(0, 24)} className="flex gap-2.5 text-sm text-[#535E56] leading-relaxed">
+                      <Check className="w-4 h-4 text-willow flex-shrink-0 mt-0.5" />
+                      <span>{pt}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
