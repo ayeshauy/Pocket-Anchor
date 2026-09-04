@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import ClinicMap from '@/components/health/ClinicMap';
 import { MapPin, Phone, Clock, Globe, Pill, X, Plus, Stethoscope } from 'lucide-react';
 
 export default function HealthPage() {
@@ -63,20 +64,8 @@ function Clinics() {
           ))}
         </div>
       </div>
-      <div className="rounded-3xl relative overflow-hidden min-h-[520px] bg-gradient-to-br from-willow to-willow-dark text-cloud p-6">
-        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(247,181,87,0.4) 0, transparent 40%), radial-gradient(circle at 70% 80%, rgba(243,107,56,0.4) 0, transparent 40%)' }} />
-        <div className="relative">
-          <p className="font-serif text-2xl">A quiet atlas of care.</p>
-          <p className="text-cloud/70 text-sm mt-1">Visualised clinics · community trust · language tags</p>
-          <div className="mt-8 grid grid-cols-2 gap-3">
-            {items.slice(0, 6).map(c => (
-              <div key={c.id} className="rounded-2xl bg-cloud/10 backdrop-blur-md p-4 border border-cloud/20">
-                <div className="flex items-center gap-2"><MapPin className="w-3 h-3 text-mimosa" /><p className="text-xs">{c.city}</p></div>
-                <p className="font-serif text-lg mt-1">{c.name}</p>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div>
+        <ClinicMap clinics={items} height={560} />
       </div>
     </div>
   );

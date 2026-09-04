@@ -30,10 +30,16 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - Quick Exit: floating button + Esc×2 decoy weather screen (site-wide)
 - Object storage: public + private uploads, blob download with auth
 
+## Implemented (Jun 2026, iter 2)
+- **Voice Recording**: in-browser MediaRecorder voice notes on the Anchor public page (`VoiceRecorder.jsx`), uploaded as `audio/webm` via `/api/upload/public/:slug`
+- **Real Clinic Map**: Leaflet + OpenStreetMap tiles (`ClinicMap.jsx`) replacing the gradient stub; pins color-coded by 24/7 availability
+- **Guardian Invites + Thinking-of-You Pulse**: `POST/GET/DELETE /api/guardians`, `POST /api/guardians/:id/pulse`, `GET /api/guardians/feed`; `GuardianPanel.jsx` dashboard tab with invite form + supporter notification feed
+- **Memory Vault**: `POST/GET/DELETE /api/memory`; `MemoryVault.jsx` dashboard tab — photo/voice/video/letter kinds with media upload, person attribution
+
 ## Backlog
-- **P0:** Voice recording (in-app) for anchor public + memory vault; Guardian Dashboard invites; email supporter link out
-- **P1:** Real map (Leaflet/Mapbox) for Spatial Health Guide; wearable ingest (Apple Health/Google Fit)
-- **P2:** USDC/Stripe payments, dental & STD clinic subverticals, memorial archive video import
+- **P0:** Email supporter link out (Resend) when a guardian is invited; shareable OG preview card for `/with/:slug`
+- **P1:** Wearable ingest (Apple Health/Google Fit); guardian-accept flow (invited → active via emailed link)
+- **P2:** USDC/Stripe payments, dental & STD clinic subverticals, granular journal sharing by tag
 
 ## Architecture notes
 - MongoDB: users, user_sessions, mood_pulses, journal, hope_reasons, evidence, rebuilding, medical, files, ai_messages

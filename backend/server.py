@@ -130,6 +130,21 @@ class RebuildingGoalIn(BaseModel):
     title: str
     done: bool = False
 
+class GuardianInviteIn(BaseModel):
+    email: str
+    name: Optional[str] = None
+
+class ToyPulseIn(BaseModel):
+    guardian_email: Optional[str] = None
+    note: Optional[str] = ""
+
+class MemoryItemIn(BaseModel):
+    title: str
+    description: str = ""
+    person: Optional[str] = ""  # name of loved one
+    media_path: Optional[str] = ""
+    kind: str = "photo"  # photo | voice | video | letter
+
 # ---------------- Auth helpers ----------------
 async def get_user_from_token(token: str) -> Optional[dict]:
     if not token:
@@ -185,15 +200,14 @@ async def auth_session(payload: SessionInit, response: Response):
     if existing:
         user_id = existing["user_id"]
         await db.users.update_one({"user_id": user_id}, {"$set": {"name": name, "picture": picture}})
-        user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
     else:
         user_id = f"user_{uuid.uuid4().hex[:12]}"
-        user_doc = {
+        await db.users.insert_one({
             "user_id": user_id, "email": email, "name": name, "picture": picture,
             "sanctuary_name": None, "sanctuary_slug": None,
             "created_at": now_iso(),
-        }
-        await db.users.insert_one(user_doc)
+        })
+    user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
 
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     await db.user_sessions.insert_one({
@@ -486,6 +500,108 @@ async def ai_chat(payload: ChatIn, request: Request):
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"}
     )
+
+# ---------------- Guardians (Inner Circle) ----------------
+@api_router.post("/guardians/invite")
+async def invite_guardian(payload: GuardianInviteIn, request: Request):
+    user = await require_user(request)
+    if not payload.email or "@" not in payload.email:
+        raise HTTPException(400, "Valid email required")
+    # Upsert — re-inviting resets status
+    existing = await db.guardians.find_one({"owner_user_id": user["user_id"], "guardian_email": payload.email.lower()}, {"_id": 0})
+    if existing:
+        return existing
+    doc = {
+        "id": str(uuid.uuid4()),
+        "owner_user_id": user["user_id"],
+        "owner_slug": user.get("sanctuary_slug"),
+        "guardian_email": payload.email.lower(),
+        "guardian_name": payload.name or payload.email.split("@")[0],
+        "status": "invited",  # invited | active
+        "created_at": now_iso(),
+    }
+    await db.guardians.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/guardians")
+async def list_guardians(request: Request):
+    user = await require_user(request)
+    items = await db.guardians.find({"owner_user_id": user["user_id"]}, {"_id": 0}).to_list(100)
+    return items
+
+@api_router.delete("/guardians/{gid}")
+async def remove_guardian(gid: str, request: Request):
+    user = await require_user(request)
+    await db.guardians.delete_one({"id": gid, "owner_user_id": user["user_id"]})
+    return {"ok": True}
+
+@api_router.post("/guardians/{gid}/pulse")
+async def toy_pulse(gid: str, payload: ToyPulseIn, request: Request):
+    user = await require_user(request)
+    g = await db.guardians.find_one({"id": gid, "owner_user_id": user["user_id"]}, {"_id": 0})
+    if not g:
+        raise HTTPException(404, "Guardian not found")
+    # Record the pulse (notification feed on dashboard)
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["user_id"],
+        "kind": "toy_pulse",
+        "guardian_id": gid,
+        "guardian_name": g["guardian_name"],
+        "note": payload.note or "",
+        "created_at": now_iso(),
+    }
+    await db.notifications.insert_one(doc)
+    # In a full build: send email/push to guardian here.
+    return {"ok": True, "message": f"Thinking-of-You sent to {g['guardian_name']}"}
+
+@api_router.get("/guardians/feed")
+async def guardian_feed(request: Request):
+    """Supporter notifications: who left what, who sent a pulse."""
+    user = await require_user(request)
+    items = await db.notifications.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(50)
+    # Also recent hope items as notifications
+    recent = await db.hope_reasons.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(10)
+    for r in recent:
+        items.append({
+            "id": f"hope-{r['id']}", "kind": "hope_reason",
+            "guardian_name": r.get("supporter_name", "Someone"),
+            "note": (r.get("text") or "")[:120],
+            "created_at": r.get("created_at"),
+        })
+    items.sort(key=lambda x: x.get("created_at") or "", reverse=True)
+    return items[:40]
+
+# ---------------- Memory Vault (memorial archive) ----------------
+@api_router.post("/memory")
+async def add_memory(payload: MemoryItemIn, request: Request):
+    user = await require_user(request)
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user["user_id"],
+        "title": payload.title,
+        "description": payload.description,
+        "person": payload.person or "",
+        "kind": payload.kind,
+        "media_path": payload.media_path or "",
+        "created_at": now_iso(),
+    }
+    await db.memory_vault.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/memory")
+async def list_memory(request: Request):
+    user = await require_user(request)
+    items = await db.memory_vault.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(500)
+    return items
+
+@api_router.delete("/memory/{item_id}")
+async def del_memory(item_id: str, request: Request):
+    user = await require_user(request)
+    await db.memory_vault.delete_one({"id": item_id, "user_id": user["user_id"]})
+    return {"ok": True}
 
 # ---------------- Health directory (Nomadic) ----------------
 CLINICS = [

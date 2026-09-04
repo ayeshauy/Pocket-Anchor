@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import MoodPulseOrb, { MOOD_STATES } from '@/components/sanctuary/MoodPulseOrb';
+import GuardianPanel from '@/components/sanctuary/GuardianPanel';
+import MemoryVault from '@/components/sanctuary/MemoryVault';
 import { toast } from 'sonner';
 import { Heart, Star, AlertTriangle, Copy, Wind, BookHeart, Music2, MessageCircleHeart, X, Send } from 'lucide-react';
 
@@ -94,10 +96,12 @@ export default function Dashboard() {
           {/* Tabs: Wall / Journal / Breath */}
           <div className="card-organic p-6">
             <Tabs defaultValue="wall">
-              <TabsList className="bg-cloud-subtle rounded-full p-1">
+              <TabsList className="bg-cloud-subtle rounded-full p-1 flex-wrap h-auto">
                 <TabsTrigger value="wall" data-testid="tab-wall" className="rounded-full data-[state=active]:bg-willow data-[state=active]:text-cloud">Wall of Hope</TabsTrigger>
                 <TabsTrigger value="journal" data-testid="tab-journal" className="rounded-full data-[state=active]:bg-willow data-[state=active]:text-cloud">Journal</TabsTrigger>
                 <TabsTrigger value="breath" data-testid="tab-breath" className="rounded-full data-[state=active]:bg-willow data-[state=active]:text-cloud">Breathing</TabsTrigger>
+                <TabsTrigger value="guardians" data-testid="tab-guardians" className="rounded-full data-[state=active]:bg-willow data-[state=active]:text-cloud">Guardians</TabsTrigger>
+                <TabsTrigger value="memory" data-testid="tab-memory" className="rounded-full data-[state=active]:bg-willow data-[state=active]:text-cloud">Memory Vault</TabsTrigger>
               </TabsList>
               <TabsContent value="wall" className="mt-5">
                 <WallOfHope items={hope} onRefresh={load} />
@@ -107,6 +111,12 @@ export default function Dashboard() {
               </TabsContent>
               <TabsContent value="breath" className="mt-5">
                 <Breathing active={breath} setActive={setBreath} />
+              </TabsContent>
+              <TabsContent value="guardians" className="mt-5">
+                <GuardianPanel />
+              </TabsContent>
+              <TabsContent value="memory" className="mt-5">
+                <MemoryVault />
               </TabsContent>
             </Tabs>
           </div>

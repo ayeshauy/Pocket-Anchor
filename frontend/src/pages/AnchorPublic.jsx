@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { ImageIcon, Music2, Mic, Send } from 'lucide-react';
+import VoiceRecorder from '@/components/sanctuary/VoiceRecorder';
 
 export default function AnchorPublic() {
   const { slug } = useParams();
@@ -14,6 +15,7 @@ export default function AnchorPublic() {
   const [text, setText] = useState('');
   const [song, setSong] = useState('');
   const [file, setFile] = useState(null);
+  const [voiceFile, setVoiceFile] = useState(null);
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [count, setCount] = useState(0);
@@ -31,10 +33,11 @@ export default function AnchorPublic() {
     try {
       let media_path = '';
       let kind = song ? 'song' : 'text';
-      if (file) {
-        const up = await api.upload(`/upload/public/${slug}`, file);
+      const uploadFile = voiceFile || file;
+      if (uploadFile) {
+        const up = await api.upload(`/upload/public/${slug}`, uploadFile);
         media_path = up.path;
-        kind = file.type.startsWith('audio/') ? 'voice' : 'photo';
+        kind = uploadFile.type.startsWith('audio/') ? 'voice' : 'photo';
       }
       await api.post(`/hope/${slug}`, {
         supporter_name: supporter || 'A kindred soul',
@@ -102,15 +105,19 @@ export default function AnchorPublic() {
               <div className="w-11 h-11 rounded-full bg-mimosa-soft flex items-center justify-center">
                 <ImageIcon className="w-4 h-4 text-orange" />
               </div>
-              <span>{file ? file.name : 'Attach a photo or voice note (optional)'}</span>
+              <span>{file ? file.name : 'Attach a photo (optional)'}</span>
               <input
                 data-testid="reason-file-input"
                 type="file"
                 accept="image/*,audio/*"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                onChange={(e) => { setFile(e.target.files?.[0] || null); setVoiceFile(null); }}
                 className="hidden"
               />
             </label>
+            <VoiceRecorder
+              dataTestIdPrefix="anchor-voice"
+              onReady={async (f) => { setVoiceFile(f); setFile(null); }}
+            />
             <Button
               data-testid="submit-reason-btn"
               onClick={send} disabled={loading}
