@@ -19,8 +19,14 @@ export default function QuickExitDock() {
         });
       }
     };
+    const onCustom = () => trigger();
     window.addEventListener('keydown', onKey);
-    return () => { window.removeEventListener('keydown', onKey); clearTimeout(timer); };
+    window.addEventListener('anchor:quick-exit', onCustom);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('anchor:quick-exit', onCustom);
+      clearTimeout(timer);
+    };
   }, [trigger]);
 
   if (decoy) return <DecoyScreen onExit={() => setDecoy(false)} />;

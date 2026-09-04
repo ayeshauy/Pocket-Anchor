@@ -53,6 +53,13 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - **OG mood variants**: `/api/og/:slug.png` orb now reflects latest mood state (willow/mimosa/azul)
 - **Circle page**: added owner's Anchor Link card so guardians can leave a reason directly
 
+## Implemented (Jun 2026, iter 5) — Landing architecture rebuild
+- Full landing restructure per spec: header nav (Platform | About | How It Works | Best Fit | Plans | FAQ anchor links), "Launch Sanctuary" CTA, "Quick Exit (ESC)" header control wired via `anchor:quick-exit` custom event to the site-wide decoy
+- Hero: AI-Native/Zero-Knowledge/Privacy-First badge, "Your Private Digital Health & Safety Sanctuary" headline, dual CTAs (Nomad Pass checkout + free crisis tools)
+- Six sections: Platform (3 pillar cards), About (Privacy as a Fundamental Human Right), How It Works (3 steps), Best Fit (3 audiences), Plans (3 tier cards → Stripe checkout), FAQ (10-question shadcn accordion)
+- Smooth scroll + scroll-padding for anchored sections; landing nav also renders on /pricing and /safety
+- Verified: all nav testids present, FAQ #3 opens, plan buttons 303 to Stripe, Quick Exit decoy fires from nav button
+
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL

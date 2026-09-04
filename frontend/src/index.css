@@ -55,6 +55,7 @@
 
 @layer base {
   * { @apply border-border; }
+  html { scroll-behavior: smooth; scroll-padding-top: 90px; }
   html, body { background: var(--cloud); color: var(--text-primary); }
   body {
     margin: 0;
