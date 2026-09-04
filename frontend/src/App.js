@@ -28,14 +28,15 @@ function Protected({ children, needsSanctuary = true }) {
 
 function Router() {
   const location = useLocation();
+  const { user } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
 
   // Handle OAuth callback synchronously (fragment includes session_id)
   if (location.hash?.includes('session_id=')) return <AuthCallback />;
 
-  const isPublicAnchor = location.pathname.startsWith('/with/')
+  const isPublicAnchor = (location.pathname.startsWith('/with/')
     || location.pathname.startsWith('/circle/')
-    || location.pathname.startsWith('/guardian/');
+    || location.pathname.startsWith('/guardian/')) && !user;
   const showNav = !isPublicAnchor;
 
   return (

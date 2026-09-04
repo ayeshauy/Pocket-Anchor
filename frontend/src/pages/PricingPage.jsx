@@ -109,8 +109,8 @@ export default function PricingPage() {
 
         <div className="mt-14 card-organic p-6 text-center">
           <p className="text-sm text-[#535E56] max-w-2xl mx-auto leading-relaxed">
-            <span className="text-willow-dark font-medium">Zero-knowledge by design.</span> Your health and safety data
-            is encrypted in your browser before it ever reaches a server. If you are in immediate danger,
+            <span className="text-willow-dark font-medium">Private by design.</span> Your health and safety data
+            is private to your account, never sold, never mined for ads. If you are in immediate danger,
             skip this page entirely — <Link to="/safety" className="text-orange underline underline-offset-4">safety tools are free, always</Link>.
           </p>
         </div>

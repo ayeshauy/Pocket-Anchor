@@ -73,6 +73,11 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - **Verified by testing_agent (iteration_2): 30/30 nav assertions passed on 390x844 + desktop regression clean**
 - Follow-up fixes from test report: dashboard mobile horizontal overflow fixed (px-4 + overflow-x-hidden + break-all on anchor URL), landing "Launch Sanctuary" CTA no longer clipped at 390px, pillar bar now persists on /safety for logged-in users, a11y attrs (aria-expanded/aria-controls/role) on hamburger + panel. Self-verified: scrollWidth 390=390 on dashboard + landing, CTA edge 371<390, safety pill active on /safety
 
+## Implemented (Jun 2026, iter 8) — Landing-to-product alignment + pillar bar everywhere
+- Mobile pillar bar now also shows on /pricing and /with/:slug for signed-in users; TopNav renders on anchor pages when the owner is logged in (supporters still see the clean, nav-free page)
+- Landing copy audited against shipped product: removed/rewrote unbuilt claims (client-side AES-256, decoy password, EXIF stripping, SLM translation, USDC rails, care orchestration, proactive monitoring, granular journal sharing). FAQ Q1/Q3/Q4/Q9/Q10 now describe real features (private-by-default, Notes & Recipes decoy mode, live clinic map, zero-auth safety, guardian circles). Hero badge → "AI-Native · Privacy-First · Crisis Tools Always Free"; About + Pricing zero-knowledge claims rewritten honestly with roadmap note
+- Verified: pillar bar on /with/:slug + /pricing (mobile, logged-in), anonymous anchor page stays nav-free, fixed App.js Router crash (`user` not in scope), FAQ copy contains no zero-knowledge/decoy-password claims
+
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL

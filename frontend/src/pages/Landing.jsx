@@ -20,9 +20,9 @@ const PILLARS = [
       ['Wall of Hope', 'a growing archive of reasons to stay'],
       ['Silent Hugs', 'someone felt this, no reply needed'],
       ['Emergency "Break-Glass" Archive', 'for the worst hours'],
-      ['Private Journal', 'with granular view permissions'],
+      ['Private Journal', 'mood colors & tags, private by default'],
     ],
-    modules: ['♡ Anchor', 'ⓘ Care', '◈ Journal', '⛨ Guardian'],
+    modules: ['♡ Anchor', '◈ Journal', '⛨ Guardian', '〜 Breath'],
     bg: 'from-willow to-willow-dark', accent: '#F7B557',
   },
   {
@@ -32,13 +32,13 @@ const PILLARS = [
     sub: 'Nomadic Health & Medical Infrastructure',
     tagline: 'Non-custodial health infrastructure for people who move: your records, your money, your care, across borders.',
     features: [
-      ['Spatial Health Guide', 'safe-haven clinics & live pharmacy stock'],
-      ['Medical Vault', 'with SLM diagnostic translation'],
-      ['USDC cross-border settlement rails', 'instant, no SWIFT friction'],
-      ['Care orchestration', 'appointments and follow-ups'],
-      ['Proactive monitoring', 'and a global specialist network'],
+      ['Spatial Health Guide', 'live clinic map with trust scores'],
+      ['Medical Vault', 'medications, allergies, conditions, visits'],
+      ['Global Doctor Network', 'telehealth-aware specialists'],
+      ['24/7 emergency filtering', 'care that never sleeps'],
+      ['Language tags', 'find a clinician who speaks yours'],
     ],
-    modules: ['◉ Health Guide', '▤ Med Vault', '$ Financial', '✆ Concierge', '↗ Monitor', '✚ Doctors'],
+    modules: ['◉ Health Guide', '▤ Med Vault', '✚ Doctors'],
     bg: 'from-orange to-[#8a3a12]', accent: '#F36B38',
   },
   {
@@ -50,7 +50,7 @@ const PILLARS = [
     features: [
       ['Zero-auth Resource Directory', 'hotlines, shelters, legal aid'],
       ['Survivor Navigator AI', 'options, never orders'],
-      ['Evidence Vault', 'client-side AES-256-GCM file encryption'],
+      ['Evidence Vault', 'private, timestamped incident logs'],
       ['Rebuilding Roadmap', 'across four pillars'],
       ['Quick-exit & blur-screen controls', 'on every page'],
     ],
@@ -62,18 +62,18 @@ const PILLARS = [
 const CHAPTERS = [
   {
     n: '01',
-    t: 'Zero-Knowledge Sanctuary Setup',
+    t: 'Your Sanctuary, Live in One Step',
     points: [
       'Instant deployment of custom Anchor Links (/with/:slug) and low-stimulation communication channels.',
-      'Send low-energy "Silent Hugs" and configure private journal permission locks without triggering notifications.',
+      'Send low-energy "Silent Hugs" and invite guardians whose Thinking-of-You pulses never demand a reply.',
     ],
   },
   {
     n: '02',
     t: 'Cross-Border Nomadic Healthcare',
     points: [
-      'Instant mapping of safe-haven clinics, medical providers, and real-time local pharmacy inventory.',
-      'Small Language Model (SLM) diagnostic engine converts international prescription names into exact local equivalents with optional USDC cross-border settlement.',
+      'Instant mapping of safe-haven clinics and medical providers with trust scores, language tags, and 24/7 filters.',
+      'A Medical Vault for medications, allergies, conditions, and visits — plus a global specialist network with telehealth availability.',
     ],
   },
   {
@@ -81,7 +81,7 @@ const CHAPTERS = [
     t: 'Zero-Auth Survivor & IPV Safety',
     points: [
       'Immediate, non-custodial access to crisis shelters, legal aid, and hotlines with zero account registration.',
-      'Browser-level EXIF metadata stripping and client-side AES-256-GCM file encryption for evidence vaults with one-tap quick-exit controls.',
+      'Private, timestamped Evidence Vault entries and one-tap quick-exit controls on every page.',
     ],
   },
 ];
@@ -93,14 +93,14 @@ const AUDIENCES = [
 ];
 
 const FAQS = [
-  ['Is my health and personal data really unreadable by Anchor?',
-   'Yes. Anchor is engineered on zero-knowledge cryptographic principles. Using client-side Web Crypto API (AES-256), your journal entries, medical records, and uploaded files are encrypted directly in your browser before hitting our database. We do not hold your private keys, meaning no one—not even our engineering team—can read your records.'],
+  ['Is my health and personal data really private on Anchor?',
+   'Yes. Your journal entries, medical records, and evidence uploads are private to your account, encrypted in transit and at rest, and never sold or used for advertising. Supporters see only what your Anchor Link shows them — never your journal. Full client-side encryption (so not even our engineering team could read your records) is on our near-term roadmap.'],
   ['What happens if I need to leave the app immediately in an emergency?',
-   'Clicking the Quick-Exit button or pressing the ESC key instantly redirects your active tab to a neutral, common web page while instantly clearing local session memory.'],
-  ['How does the decoy password / duress unlock work for the Evidence Vault?',
-   'If you are ever forced or coerced into opening your vault, entering your designated Decoy Password decrypts a secondary, completely neutral "fake" vault containing non-sensitive filler records—keeping your actual evidence vault completely hidden and unlinked.'],
-  ['How does the Spatial Health Guide and pharmacy translator work while traveling?',
-   'Our Nomadic Health layer uses a Small Language Model (SLM) to parse medication active ingredients and translate them into local brand names across international markets. Combined with our interactive map, you can locate verified clinics, pharmacies, and emergency services wherever you land.'],
+   'Clicking the Quick-Exit button or pressing the ESC key twice instantly swaps your screen to a neutral weather dashboard. The Evidence Vault can also be disguised as "Notes & Recipes" with a single toggle.'],
+  ['How does the decoy mode work for the Evidence Vault?',
+   'With one toggle, your Evidence Vault renders as an innocent "Notes & Recipes" list — titles and details are replaced with neutral filler while your real entries stay hidden underneath. Combined with Quick-Exit, the vault never looks like a vault.'],
+  ['How does the Spatial Health Guide work while traveling?',
+   'The Nomadic Health layer maps vetted clinics with community trust scores, spoken languages, and 24/7 emergency filtering on a live interactive map. Your Medical Vault keeps medications, allergies, conditions, and visit notes one tap away, wherever you land.'],
   ['Why are all Survivor & IPV Safety tools 100% free?',
    'We believe safety is a fundamental human right. All Domain 3 tools—including the zero-auth crisis hotline directory, emergency evidence vault, trauma-informed AI navigator, and shelter finder—have zero paywalls. They are fully subsidized by our consumer Nomad Pass subscriptions and B2B Enterprise seats.'],
   ['What is the difference between the Nomad Pass and Enterprise Duty-of-Care?',
@@ -109,10 +109,10 @@ const FAQS = [
    'No. We do not track continuous background GPS, sell telemetry, or deploy third-party advertising tracking cookies. City or country-level searches in our Nomadic Health and Crisis directories occur locally or through anonymized spatial queries.'],
   ['What is the "Thinking-of-You Pulse" in the Sanctuary layer?',
    'On low-energy or struggling days, opening a full conversation can feel overwhelming. The Thinking-of-You Pulse lets designated supporters send a low-stimulation, single-tap notification to let you know you\u2019re in their thoughts without placing any pressure on you to reply.'],
-  ['How does image metadata stripping work when uploading evidence files?',
-   'When uploading images to the Emergency Evidence Vault, Anchor automatically strips EXIF metadata (such as device type, GPS coordinates, and camera timestamps) directly inside your browser prior to client-side encryption, preventing accidental location leaks.'],
-  ['Can I share specific journal entries or medical records without revealing my whole account?',
-   'Yes. Anchor supports granular, view-only access. You can generate encrypted, time-limited read links for specific tagged entries or medical lists to share with trusted healthcare providers or loved ones without granting access to your master vault.'],
+  ['Do I need an account to use the crisis and safety tools?',
+   'No. The entire Safety Layer — hotline directory, Survivor Navigator AI, safety resources — works with zero sign-up, directly from the homepage. Accounts are only needed to keep your own Evidence Vault and Rebuilding plan.'],
+  ['Can I control exactly what supporters see?',
+   'Yes. Your Anchor Link shows supporters nothing but a doorway to leave warmth — they never see your journal, your mood history, or your data. Guardians you invite see only a soft "weather report" (your current mood color), never your words, and their Thinking-of-You pulses never require a reply.'],
 ];
 
 export default function Landing({ onSignIn }) {
@@ -134,14 +134,14 @@ export default function Landing({ onSignIn }) {
         <div className="grid lg:grid-cols-[1.15fr_1fr] gap-14 items-center">
           <div>
             <div data-testid="hero-badge" className="inline-flex items-center gap-2 rounded-full border border-willow/15 bg-white/70 px-4 py-1.5 text-[11px] uppercase tracking-[0.22em] text-willow-dark">
-              <Lock className="w-3 h-3 text-orange" /> AI-Native · Zero-Knowledge · Privacy-First
+              <Lock className="w-3 h-3 text-orange" /> AI-Native · Privacy-First · Crisis Tools Always Free
             </div>
             <h1 className="font-serif text-5xl md:text-7xl text-willow-dark font-light mt-6 leading-[1.02] tracking-tight">
               Your Private Digital<br/>
               <em className="text-orange not-italic">Health & Safety</em> Sanctuary
             </h1>
             <p className="mt-6 text-lg text-[#535E56] max-w-xl leading-relaxed">
-              Encrypted mental healthcare, real-time international travel health infrastructure, and
+              Private mental health support, real-time international travel health infrastructure, and
               zero-auth crisis resources—built to protect you anywhere on Earth.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -157,7 +157,7 @@ export default function Landing({ onSignIn }) {
               </Link>
             </div>
             <div className="mt-8 flex items-center gap-6 text-xs text-willow-light">
-              <span className="flex items-center gap-2"><Lock className="w-4 h-4" /> We can't read your data</span>
+              <span className="flex items-center gap-2"><Lock className="w-4 h-4" /> We never sell your data</span>
               <span className="flex items-center gap-2"><DoorOpen className="w-4 h-4" /> ESC × 2 hides everything</span>
               <span className="flex items-center gap-2"><Compass className="w-4 h-4" /> Travels with you</span>
             </div>
@@ -232,9 +232,10 @@ export default function Landing({ onSignIn }) {
           </h2>
           <p className="mt-6 text-lg text-[#535E56] leading-relaxed">
             Anchor was born out of a simple necessity: care shouldn't come at the cost of your digital identity
-            or personal safety. Built on a zero-knowledge architecture, Anchor ensures your health notes, voice
-            memos, and emergency evidence remain encrypted client-side using Web Crypto API (AES-256). We cannot
-            read your data, track your location, or monetize your identity.
+            or personal safety. Your health notes, voice memos, and emergency evidence stay private to your
+            account — encrypted in transit and at rest. We never sell your data, track your location, or
+            monetize your identity. Full client-side encryption, so that not even our engineers can read your
+            records, is on our near-term roadmap.
           </p>
         </div>
       </section>

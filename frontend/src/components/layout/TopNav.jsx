@@ -106,8 +106,8 @@ export default function TopNav({ onSignIn }) {
         </div>
       </div>
 
-      {/* Mobile pillar pills — always visible on phones (dashboard + safety) */}
-      {(isDash || loc.pathname === '/safety') && user && (
+      {/* Mobile pillar pills — always visible on phones for signed-in users */}
+      {(isDash || loc.pathname === '/safety' || loc.pathname === '/pricing' || loc.pathname.startsWith('/with/')) && user && (
         <div className="md:hidden border-t border-willow/10 px-4 py-2.5 flex items-center justify-center gap-1 bg-cloud/90" data-testid="mobile-pillar-nav">
           <MobilePill to="/dashboard" label="Sanctuary" testId="mobile-pill-sanctuary" />
           <MobilePill to="/dashboard/health" label="Health" testId="mobile-pill-health" />
