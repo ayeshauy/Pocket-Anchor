@@ -67,7 +67,7 @@ export default function Dashboard() {
   const mood14 = last14Days(pulses);
 
   return (
-    <div className="max-w-7xl mx-auto px-5 lg:px-10 py-10">
+    <div className="max-w-7xl mx-auto px-4 sm:px-5 lg:px-10 py-10 overflow-x-hidden">
       <div className="grid lg:grid-cols-[1.15fr_1fr] gap-8 items-start">
         {/* Left column */}
         <div className="space-y-6">
@@ -96,7 +96,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <p className="text-xs uppercase tracking-[0.28em] text-willow-light">Your Anchor Link</p>
-                <p className="font-mono text-sm text-willow-dark mt-1">
+                <p className="font-mono text-xs sm:text-sm text-willow-dark mt-1 break-all">
                   {window.location.host}/with/{user.sanctuary_slug}
                 </p>
               </div>

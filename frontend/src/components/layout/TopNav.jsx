@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, Menu, X } from 'lucide-react';
+import { useState } from 'react';
 
 const LANDING_LINKS = [
   { label: 'Platform', hash: 'platform', testId: 'nav-platform' },
@@ -16,8 +17,13 @@ export default function TopNav({ onSignIn }) {
   const { user, logout } = useAuth();
   const loc = useLocation();
   const isDash = loc.pathname.startsWith('/dashboard');
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const quickExit = () => window.dispatchEvent(new CustomEvent('anchor:quick-exit'));
+  const quickExit = () => {
+    setMobileOpen(false);
+    window.dispatchEvent(new CustomEvent('anchor:quick-exit'));
+  };
+  const close = () => setMobileOpen(false);
 
   return (
     <header className="sticky top-0 z-30 backdrop-blur-xl bg-cloud/85 border-b border-willow/10">
@@ -53,6 +59,16 @@ export default function TopNav({ onSignIn }) {
 
         <div className="flex items-center gap-2 flex-shrink-0">
           <button
+            data-testid="mobile-menu-btn"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-menu-panel"
+            className={`p-2 rounded-full hover:bg-cloud-muted transition ${isDash ? 'md:hidden' : 'lg:hidden'}`}
+            title="Menu"
+          >
+            {mobileOpen ? <X className="w-5 h-5 text-willow" /> : <Menu className="w-5 h-5 text-willow" />}
+          </button>
+          <button
             data-testid="nav-quick-exit-btn"
             onClick={quickExit}
             className="hidden sm:inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.14em] text-willow-light hover:text-orange transition px-2"
@@ -82,14 +98,89 @@ export default function TopNav({ onSignIn }) {
             <Button
               data-testid="launch-sanctuary-btn"
               onClick={onSignIn}
-              className="rounded-full bg-willow hover:bg-willow-dark text-cloud px-5"
+              className="rounded-full bg-willow hover:bg-willow-dark text-cloud px-3.5 py-2 text-xs sm:px-5 sm:text-sm"
             >
               Launch Sanctuary
             </Button>
           )}
         </div>
       </div>
+
+      {/* Mobile pillar pills — always visible on phones (dashboard + safety) */}
+      {(isDash || loc.pathname === '/safety') && user && (
+        <div className="md:hidden border-t border-willow/10 px-4 py-2.5 flex items-center justify-center gap-1 bg-cloud/90" data-testid="mobile-pillar-nav">
+          <MobilePill to="/dashboard" label="Sanctuary" testId="mobile-pill-sanctuary" />
+          <MobilePill to="/dashboard/health" label="Health" testId="mobile-pill-health" />
+          <MobilePill to="/safety" label="Safety" testId="mobile-pill-safety" />
+        </div>
+      )}
+
+      {/* Mobile menu panel */}
+      {mobileOpen && (
+        <div id="mobile-menu-panel" role="navigation" aria-label="Mobile" className={`border-t border-willow/10 bg-cloud/95 backdrop-blur-xl px-5 py-4 space-y-1 ${isDash ? 'md:hidden' : 'lg:hidden'}`} data-testid="mobile-menu-panel">
+          {isDash && user ? (
+            <>
+              <MobileLink to="/dashboard" label="Sanctuary" testId="mobile-nav-sanctuary" onClick={close} />
+              <MobileLink to="/dashboard/health" label="Health" testId="mobile-nav-health" onClick={close} />
+              <MobileLink to="/safety" label="Safety" testId="mobile-nav-safety" onClick={close} />
+              <MobileLink to="/pricing" label="Plans & Pricing" testId="mobile-nav-pricing" onClick={close} />
+            </>
+          ) : (
+            <>
+              {LANDING_LINKS.map((l) => (
+                <a
+                  key={l.hash}
+                  href={`/#${l.hash}`}
+                  onClick={close}
+                  data-testid={`mobile-${l.testId}`}
+                  className="block px-4 py-3 rounded-2xl text-willow-dark hover:bg-mimosa-soft transition font-medium"
+                >
+                  {l.label}
+                </a>
+              ))}
+              <MobileLink to="/safety" label="Safety" testId="mobile-nav-safety" onClick={close} />
+              <MobileLink to="/pricing" label="Plans & Pricing" testId="mobile-nav-pricing" onClick={close} />
+            </>
+          )}
+          <button
+            data-testid="mobile-quick-exit-btn"
+            onClick={quickExit}
+            className="w-full text-left px-4 py-3 rounded-2xl text-orange hover:bg-orange-soft transition font-medium"
+          >
+            Quick Exit (ESC)
+          </button>
+        </div>
+      )}
     </header>
+  );
+}
+
+function MobileLink({ to, label, testId, onClick }) {
+  const loc = useLocation();
+  const active = loc.pathname === to;
+  return (
+    <Link
+      to={to}
+      onClick={onClick}
+      data-testid={testId}
+      className={`block px-4 py-3 rounded-2xl transition font-medium ${active ? 'bg-willow text-cloud' : 'text-willow-dark hover:bg-mimosa-soft'}`}
+    >
+      {label}
+    </Link>
+  );
+}
+
+function MobilePill({ to, label, testId }) {
+  const loc = useLocation();
+  const active = loc.pathname === to;
+  return (
+    <Link
+      to={to}
+      data-testid={testId}
+      className={`px-5 py-1.5 rounded-full text-[15px] transition ${active ? 'bg-willow text-cloud' : 'text-willow-dark hover:bg-cloud-muted'}`}
+    >
+      {label}
+    </Link>
   );
 }
 

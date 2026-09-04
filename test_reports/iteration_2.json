@@ -1,0 +1,30 @@
+{
+  "summary": "Frontend-only verification of the mobile navigation bug fix in TopNav.jsx. Seeded a mongosh session for ayesha.pocketagency@gmail.com and set the session_token cookie. Mobile (390x844): pill bar mobile-pillar-nav renders directly under the 64px header on /dashboard with all three pills (Sanctuary active/filled willow, Health, Safety); tapping mobile-pill-health navigates to /dashboard/health (clinics view rendered, Health pill becomes active) and mobile-pill-safety navigates to /safety (988 + DV hotline content). Hamburger (mobile-menu-btn) is visible on mobile and opens mobile-menu-panel with mobile-nav-sanctuary/health/safety/pricing + mobile-quick-exit-btn; tapping mobile-nav-safety navigates and closes the panel. Logged-out mobile landing: no pill bar (correct), hamburger panel shows all 6 landing section links + Safety + Plans & Pricing + Quick Exit, and Quick Exit renders the decoy weather screen. Desktop 1920px regression: desktop nav-sanctuary/nav-health/nav-safety visible in dashboard header, hamburger and pill bar hidden; landing shows Platform/About/How It Works/Best Fit/Plans/FAQ + Launch Sanctuary, FAQ accordion (10 items) expands, Live Sandbox tabs (3) switch and pharmacy-stock table renders. All 30 nav assertions passed. Bug fix verified.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/dashboard on 390px mobile", "issues": ["Horizontal page overflow: document.scrollWidth=406 vs clientWidth=390. All main cards (mood-pulse-card, anchor-link-card, break-glass-card and other card-organic blocks) render width 386px starting at x=20, so their right edge is 406px and content is clipped/scrollable sideways (e.g. the Anchor Link URL text and the Health page 'Doctor Network' sub-tab are cut off at the right edge). Pre-existing container padding issue in the dashboard layout, not caused by the TopNav fix."]},
+      {"screen": "/ landing on 390px mobile", "issues": ["Minor 9px horizontal overflow (scrollWidth 399 vs 390); the header 'Launch Sanctuary' button is partially clipped at the right edge on 390px width. Consider shrinking/hiding the CTA label on <400px."]}
+    ]
+  },
+  "test_report_links": ["/app/test_reports/iteration_2.json"],
+  "action_items": [
+    "Fix mobile horizontal overflow on /dashboard (cards 386px wide at x=20 -> 406px right edge). Likely a px-5 padding + fixed/min width combination in the dashboard grid container.",
+    "Prevent the header Launch Sanctuary CTA from overflowing the 390px viewport on the public landing page."
+  ],
+  "critical_code_review_comments": [
+    "MobilePill for Safety points to /safety which is NOT a /dashboard route, so isDash becomes false and the pill bar disappears once the user lands on Safety (only the hamburger remains). Functionally acceptable but consider keeping the pillar bar on /safety for a consistent 3-pillar switcher.",
+    "mobile-menu-btn has no aria-expanded/aria-controls and the panel lacks role/aria-label; add for a11y.",
+    "Opening the hamburger panel does not lock body scroll and the panel pushes content down rather than overlaying; acceptable but slightly jarring on long pages."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not tested (frontend-only request)", "frontend": "100% (30/30 navigation assertions passed)"},
+  "seed_data_creation": "mongosh: reused users doc for ayesha.pocketagency@gmail.com (user_id test-user-1788404500410, sanctuary_slug 'ayesha'), inserted user_sessions token test_session_1788529862368 (7-day expiry). /api/auth/me confirms active nomad-pass subscription, so /dashboard/health shows the clinics view (no upgrade gate).",
+  "should_call_test_agent_after_fix": false,
+  "should_main_agent_self_test": true,
+  "test_credentials": "Seeded session cookie session_token=test_session_1788529862368 on domain anchor-hope.preview.emergentagent.com (user ayesha.pocketagency@gmail.com)",
+  "context_for_next_testing_agent": "Mobile nav fix (pill bar + hamburger) is fully verified on 390x844 and desktop 1920 regression is clean. Remaining open items are purely CSS horizontal-overflow issues on mobile /dashboard (16px) and mobile landing header CTA (9px). Reuse session token test_session_1788529862368 or re-seed per /app/auth_testing.md.",
+  "rca_of_the_issue": "Original bug: dashboard nav used `hidden md:flex` with no mobile fallback, so on <768px only the brand and hidden nav were rendered and users perceived Sanctuary only. Fix adds an always-visible md:hidden pill bar under the header plus a hamburger panel; both confirmed rendering and routing correctly."
+}

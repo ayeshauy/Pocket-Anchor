@@ -39,7 +39,7 @@ export default function HealthPage() {
       <p className="text-[#535E56] mt-3 max-w-2xl">Vetted clinics, an encrypted vault for your history, and language-aware triage — wherever the day lands.</p>
 
       <Tabs defaultValue="clinics" className="mt-8">
-        <TabsList className="bg-cloud-subtle rounded-full p-1">
+        <TabsList className="bg-cloud-subtle rounded-full p-1 flex-wrap h-auto">
           <TabsTrigger value="clinics" data-testid="health-tab-clinics" className="rounded-full data-[state=active]:bg-orange data-[state=active]:text-cloud">Spatial Health Guide</TabsTrigger>
           <TabsTrigger value="vault" data-testid="health-tab-vault" className="rounded-full data-[state=active]:bg-orange data-[state=active]:text-cloud">Medical Vault</TabsTrigger>
           <TabsTrigger value="network" data-testid="health-tab-network" className="rounded-full data-[state=active]:bg-orange data-[state=active]:text-cloud">Doctor Network</TabsTrigger>

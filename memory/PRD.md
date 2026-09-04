@@ -67,6 +67,12 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - **Platform section rebuilt** (iter 6b): new header "Every feature belongs to one of three" + deliberate-split subtitle; each pillar card now carries italic tagline, 5-item "What it includes" checklist with notes, and interactive module chips (♡ Anchor / ◉ Health Guide / ⚑ Resources sets)
 - **How It Works rebuilt** (iter 6c): embedded 2-min product demo video (`/demo.mp4`, served from public) in a framed player with caption, plus 3 quick-reference chapter summaries (Zero-Knowledge Sanctuary Setup / Cross-Border Nomadic Healthcare / Zero-Auth Survivor & IPV Safety). Source MP4 was an unsupported codec for browsers — transcoded to H.264/AAC + faststart (13.4MB → 3.5MB) via imageio-ffmpeg; also added full-length VP8/Vorbis WebM source (11.3MB) for codec-less Chromium; `<video>` uses dual `<source>` tags (webm first, mp4 fallback)
 
+## Implemented (Jun 2026, iter 7) — Mobile navigation fix
+- Bug: logged-in mobile users saw only "Sanctuary" — Health/Safety hidden (desktop nav was md:flex/lg:flex with no mobile fallback)
+- Fix (`TopNav.jsx`): always-visible pill bar under header on mobile dashboard (Sanctuary/Health/Safety, active pill in willow) + hamburger menu panel on all pages (dashboard links / landing anchors / Pricing / Quick Exit)
+- **Verified by testing_agent (iteration_2): 30/30 nav assertions passed on 390x844 + desktop regression clean**
+- Follow-up fixes from test report: dashboard mobile horizontal overflow fixed (px-4 + overflow-x-hidden + break-all on anchor URL), landing "Launch Sanctuary" CTA no longer clipped at 390px, pillar bar now persists on /safety for logged-in users, a11y attrs (aria-expanded/aria-controls/role) on hamburger + panel. Self-verified: scrollWidth 390=390 on dashboard + landing, CTA edge 371<390, safety pill active on /safety
+
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL
