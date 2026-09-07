@@ -1,0 +1,34 @@
+{
+  "summary": "Independent verification of the Déjà (Core Layer) feature — backend + frontend. Wrote /app/backend/tests/test_deja.py (pytest, 18 tests). Seeded a throwaway user 'deja-gate-test@example.com' (session test_session_gate_1788760657342, NO subscription) via mongosh so the main ayesha data survived. Backend: all 18 tests pass in 17s. Verified (a) dream extraction returns full JSON with all 8 required keys {places,objects,people,environment,actions,emotions,colors,sounds} via Claude Sonnet 4.6; (b) reflection immutability — POST /deja/dreams/{id}/reflection appends to reflections[] while text and created_at stay byte-identical; (c) semantic matching — a new moment describing 'airport gate area with a rolling suitcase and someone playing guitar' matched the earlier 'carrying luggage through a huge terminal … guitar softly near a gate' dream with similarity 92 (>= 60 threshold), proving meaning-based (not keyword) matching; (d) verdict=confirmed sets moment.verdict AND dream.match_status='confirmed'; verdict validation rejects unknown values with 400; missing moment returns 404; (e) /deja/profile shape correct (dreams/possible/confirmed/countries/themes/confirmed_moments), /deja/map groups Portugal with dreams=1 moments=1 confirmed=1, /deja/export returns exported_at+dreams+moments; (f) DELETE /deja/all wipes only the throwaway user's data (main user untouched). Frontend on desktop 1920px with main session: deja-hero visible with exact tagline \"What if you've already dreamed this moment?\", stats row (Dreams/Possible/Confirmed/Countries), all 5 tabs (deja-tab-record/moment/vault/map/profile) present and switchable; vault renders 1 dream card with match-badge (Confirmed) and search input; reflection-dialog opens on '+ reflection'; moment tab has moment-text-input + moment-search-btn; map shows 2 map-country tiles; profile has recurring themes chips + Shareable card + deja-privacy panel with all 5 required lines (private-by-default, no public feed, never sold, share card only, original never changes) plus deja-export-btn + deja-wipe-btn. Desktop nav-deja pill and mobile 390px mobile-pill-deja both render. Gate test: throwaway session on /dashboard/deja renders deja-upgrade-gate with deja-upgrade-cta 'See Nomad Pass →' — confirmed. Landing page shows Déjà row and 🌙 Déjà module chip in Pillar II Core Layer. All acceptance criteria satisfied.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/deja/* (all endpoints)", "issue": "No server-side Nomad-Pass gate — endpoints only call require_user, not require_subscription. A user without active subscription is gated purely by the frontend (DejaPage checks /stripe/status). A directly-crafted API call from an unsubscribed authenticated user still succeeds. Verified: gate user GET /api/deja/dreams -> 200 []. Consider adding a subscription check server-side to enforce the paywall."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Reflection dialog (radix DialogContent)", "issues": ["Console warning: 'Missing `Description` or `aria-describedby={undefined}` for {DialogContent}'. Add DialogDescription (or aria-describedby) inside reflection-dialog for a11y compliance."]}
+    ]
+  },
+  "test_report_links": ["/app/backend/tests/test_deja.py", "/app/test_reports/pytest/deja_results.xml"],
+  "action_items": [
+    "OPTIONAL/SECURITY: Add server-side Nomad-Pass subscription enforcement on /api/deja/* endpoints (currently only frontend-gated).",
+    "OPTIONAL/A11Y: Add DialogDescription to the reflection-dialog (radix warning)."
+  ],
+  "critical_code_review_comments": [
+    "deja_ai_json is optimistic — a stray non-JSON response from the model would raise json.JSONDecodeError; deja_add_dream/moment catch generically and fall back to empty elements dict, which is acceptable but may hide model regressions. Consider logging the raw payload on parse failure.",
+    "deja_verdict updates dream.match_status using matches[0] only; if multiple matches were surfaced, only the top dream's status changes. Documented behaviour; note in UI copy if intended.",
+    "Backend endpoints under /api/deja do NOT check subscription active status. Paywall is only enforced client-side by /stripe/status gating in DejaPage. This is a paywall-bypass risk if these become known endpoints — recommend a `require_subscription()` dependency mirroring `require_user`."
+  ],
+  "updated_files": ["/app/backend/tests/test_deja.py"],
+  "success_rate": {"backend": "100% (18/18)", "frontend": "100% (all UI assertions passed)"},
+  "test_credentials": "Main subscribed user cookie session_token=test_session_1788529862368 (ayesha.pocketagency@gmail.com). Throwaway un-subscribed user cookie session_token=test_session_gate_1788760657342 (deja-gate-test@example.com, user_id test-user-gate-1788760657342) — used for gating + destructive wipe tests only.",
+  "seed_data_creation": "Inserted throwaway users doc + user_sessions doc via mongosh (no subscription field). One TEST_deja dream was seeded on the main user during the pytest module and cleaned up on teardown; the confirmed moment persists (used to demo confirmed_moments in profile UI screenshot). No data was wiped from the main user.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "test_deja.py is idempotent — it creates and (dream) tears down its own fixture. It relies on env-provided GATE_TOKEN; if absent, gating-related tests are skipped. Reuse the throwaway session or reseed a new one via /app/memory/test_credentials.md pattern for future gating tests. Backend paywall gap is the only substantive finding.",
+  "rca_of_the_issue": "N/A — this iteration was verification, not a bug hunt. The paywall observation is a design gap, not a regression: DejaPage relies exclusively on /stripe/status returning active=false to render deja-upgrade-gate; the underlying /api/deja/* handlers accept any authenticated user."
+}

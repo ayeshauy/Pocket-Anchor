@@ -180,6 +180,14 @@ async def require_user(request: Request) -> dict:
         raise HTTPException(401, "Not authenticated")
     return user
 
+async def require_subscribed_user(request: Request) -> dict:
+    """Core Layer (Nomad Pass) paywall — enforced server-side, not just in the UI."""
+    user = await require_user(request)
+    sub = user.get("subscription") or {}
+    if not sub.get("active"):
+        raise HTTPException(402, "Nomad Pass required")
+    return user
+
 def slugify(text: str) -> str:
     s = re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
     return s or f"anchor-{uuid.uuid4().hex[:6]}"
@@ -720,7 +728,7 @@ class MedRecordIn(BaseModel):
 
 @api_router.post("/medical")
 async def add_med(payload: MedRecordIn, request: Request):
-    user = await require_user(request)
+    user = await require_subscribed_user(request)
     doc = {"id": str(uuid.uuid4()), "user_id": user["user_id"],
            "kind": payload.kind, "label": payload.label, "detail": payload.detail,
            "created_at": now_iso()}
@@ -730,13 +738,13 @@ async def add_med(payload: MedRecordIn, request: Request):
 
 @api_router.get("/medical")
 async def list_med(request: Request):
-    user = await require_user(request)
+    user = await require_subscribed_user(request)
     items = await db.medical.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(500)
     return items
 
 @api_router.delete("/medical/{item_id}")
 async def del_med(item_id: str, request: Request):
-    user = await require_user(request)
+    user = await require_subscribed_user(request)
     await db.medical.delete_one({"id": item_id, "user_id": user["user_id"]})
     return {"ok": True}
 
@@ -1031,6 +1039,266 @@ async def demo_pharmacy(med: str = "metformin"):
             "otc": rnd.choice([True, False]),
         })
     return {"med": key, "found": True, "results": rows}
+
+# ---------------- Déjà (Core Layer) ----------------
+DEJA_EXTRACT_SYSTEM = (
+    "You extract concrete elements from a described dream or real-life experience. "
+    "Return ONLY valid JSON with these exact keys: "
+    '{"places":[],"objects":[],"people":[],"environment":[],"actions":[],"emotions":[],"colors":[],"sounds":[]} '
+    "— short lowercase phrases (1-3 words each), no explanations, no markdown."
+)
+DEJA_MATCH_SYSTEM = (
+    "You compare a current experience against past dream records and judge semantic similarity "
+    "(meanings, not keywords; e.g. 'carrying luggage through a huge terminal' ~ 'walking through an airport "
+    "with my suitcase'). Return ONLY valid JSON: "
+    '{"matches":[{"dream_id":"...","similarity":0-100,"matching_elements":[{"element":"...","strength":"Strong match"}],'
+    '"new_information":["..."]}]}. Include only matches with similarity >= 40, best first, max 3. '
+    "If nothing is similar, return {\"matches\":[]}. Never claim dreams predict the future."
+)
+
+async def deja_ai_json(system: str, user_text: str, session: str) -> dict:
+    import json as _json
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    chat = LlmChat(api_key=EMERGENT_KEY, session_id=session, system_message=system).with_model("anthropic", "claude-sonnet-4-6")
+    resp = await chat.send_message(UserMessage(text=user_text))
+    txt = resp if isinstance(resp, str) else getattr(resp, "text", str(resp))
+    txt = txt.strip()
+    if "```" in txt:
+        txt = txt.split("```")[1]
+        if txt.startswith("json"):
+            txt = txt[4:]
+    return _json.loads(txt.strip())
+
+class DejaDreamIn(BaseModel):
+    text: str
+    location: str = ""
+    country: str = ""
+    tags: List[str] = []
+
+class DejaMomentIn(BaseModel):
+    text: str
+    location: str = ""
+    country: str = ""
+
+class DejaReflectionIn(BaseModel):
+    text: str
+
+class DejaVerdictIn(BaseModel):
+    verdict: str  # confirmed | possible | rejected
+
+@api_router.post("/deja/dreams")
+async def deja_add_dream(payload: DejaDreamIn, request: Request):
+    user = await require_subscribed_user(request)
+    if not payload.text.strip():
+        raise HTTPException(400, "Dream text required")
+    try:
+        elements = await deja_ai_json(DEJA_EXTRACT_SYSTEM, payload.text, f"deja-extract-{uuid.uuid4().hex[:8]}")
+    except Exception as e:
+        logger.error(f"deja extract failed: {e}")
+        elements = {}
+    doc = {
+        "id": str(uuid.uuid4()), "user_id": user["user_id"],
+        "text": payload.text.strip(),
+        "location": payload.location.strip(), "country": payload.country.strip(),
+        "tags": payload.tags, "elements": elements,
+        "reflections": [], "match_status": None,
+        "created_at": now_iso(),
+    }
+    await db.deja_dreams.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/deja/dreams")
+async def deja_list_dreams(request: Request):
+    user = await require_subscribed_user(request)
+    return await db.deja_dreams.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+@api_router.delete("/deja/dreams/{dream_id}")
+async def deja_delete_dream(dream_id: str, request: Request):
+    user = await require_subscribed_user(request)
+    await db.deja_dreams.delete_one({"id": dream_id, "user_id": user["user_id"]})
+    return {"ok": True}
+
+@api_router.post("/deja/dreams/{dream_id}/reflection")
+async def deja_add_reflection(dream_id: str, payload: DejaReflectionIn, request: Request):
+    """Reflections append beside the original — the original record never changes."""
+    user = await require_subscribed_user(request)
+    r = await db.deja_dreams.update_one(
+        {"id": dream_id, "user_id": user["user_id"]},
+        {"$push": {"reflections": {"text": payload.text, "at": now_iso()}}})
+    if r.matched_count == 0:
+        raise HTTPException(404, "Dream not found")
+    return {"ok": True}
+
+@api_router.post("/deja/moments")
+async def deja_add_moment(payload: DejaMomentIn, request: Request):
+    """I'm experiencing déjà vu: extract elements, semantic-search the dream vault, persist the moment."""
+    user = await require_subscribed_user(request)
+    if not payload.text.strip():
+        raise HTTPException(400, "Describe the moment first")
+    sid = uuid.uuid4().hex[:8]
+    try:
+        elements = await deja_ai_json(DEJA_EXTRACT_SYSTEM, payload.text, f"deja-extract-{sid}")
+    except Exception:
+        elements = {}
+    dreams = await db.deja_dreams.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(25)
+    matches = []
+    if dreams:
+        catalog = "\n".join(
+            f'- id={d["id"]} date={d["created_at"][:10]} text="{d["text"]}" elements={d.get("elements", {})}'
+            for d in dreams
+        )
+        prompt = (
+            f"CURRENT EXPERIENCE: \"{payload.text}\"\nlocation: {payload.location or 'unknown'}\n\n"
+            f"PAST DREAMS:\n{catalog}\n\nReturn JSON matches."
+        )
+        try:
+            result = await deja_ai_json(DEJA_MATCH_SYSTEM, prompt, f"deja-match-{sid}")
+            for m in (result.get("matches") or [])[:3]:
+                d = next((x for x in dreams if x["id"] == m.get("dream_id")), None)
+                if not d:
+                    continue
+                days = (datetime.now(timezone.utc) - datetime.fromisoformat(d["created_at"].replace("Z", "+00:00"))).days
+                matches.append({
+                    "dream_id": d["id"], "dream_text": d["text"], "dream_date": d["created_at"][:10],
+                    "days_ago": days, "similarity": int(m.get("similarity") or 0),
+                    "matching_elements": m.get("matching_elements") or [],
+                    "new_information": m.get("new_information") or [],
+                })
+                if not d.get("match_status"):
+                    await db.deja_dreams.update_one({"id": d["id"]}, {"$set": {"match_status": "possible"}})
+        except Exception as e:
+            logger.error(f"deja match failed: {e}")
+    doc = {
+        "id": str(uuid.uuid4()), "user_id": user["user_id"],
+        "text": payload.text.strip(), "location": payload.location.strip(),
+        "country": payload.country.strip(), "elements": elements,
+        "matches": matches, "verdict": None, "created_at": now_iso(),
+    }
+    await db.deja_moments.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/deja/moments")
+async def deja_list_moments(request: Request):
+    user = await require_subscribed_user(request)
+    return await db.deja_moments.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(500)
+
+@api_router.post("/deja/moments/{moment_id}/verdict")
+async def deja_verdict(moment_id: str, payload: DejaVerdictIn, request: Request):
+    """The user — never the AI — decides whether it felt like the same moment."""
+    user = await require_subscribed_user(request)
+    if payload.verdict not in ("confirmed", "possible", "rejected"):
+        raise HTTPException(400, "Invalid verdict")
+    m = await db.deja_moments.find_one({"id": moment_id, "user_id": user["user_id"]}, {"_id": 0})
+    if not m:
+        raise HTTPException(404, "Moment not found")
+    await db.deja_moments.update_one({"id": moment_id}, {"$set": {"verdict": payload.verdict}})
+    top = (m.get("matches") or [None])[0]
+    if top:
+        await db.deja_dreams.update_one(
+            {"id": top["dream_id"], "user_id": user["user_id"]},
+            {"$set": {"match_status": payload.verdict}})
+    return {"ok": True}
+
+@api_router.get("/deja/profile")
+async def deja_profile(request: Request):
+    user = await require_subscribed_user(request)
+    uid = user["user_id"]
+    dreams = await db.deja_dreams.find({"user_id": uid}, {"_id": 0}).to_list(500)
+    moments = await db.deja_moments.find({"user_id": uid}, {"_id": 0}).to_list(500)
+    confirmed = [m for m in moments if m.get("verdict") == "confirmed"]
+    possible = sum(1 for m in moments if m.get("verdict") == "possible" or (not m.get("verdict") and m.get("matches")))
+    countries = {(d.get("country") or "").strip() for d in dreams} | {(m.get("country") or "").strip() for m in moments}
+    countries.discard("")
+    # Recurring themes: count elements across categories
+    ICONS = {"places": "📍", "objects": "🧳", "people": "👥", "environment": "🌧", "actions": "🚶", "emotions": "💭"}
+    counts = {}
+    for d in dreams:
+        for cat, vals in (d.get("elements") or {}).items():
+            for v in vals or []:
+                key = (cat, str(v).lower())
+                counts[key] = counts.get(key, 0) + 1
+    themes = [
+        {"label": v, "count": n, "icon": ICONS.get(cat, "✨")}
+        for (cat, v), n in sorted(counts.items(), key=lambda x: -x[1])[:8]
+        if n >= 1
+    ]
+    confirmed_cards = [
+        {"id": m["id"], "text": m["text"], "location": m.get("location", ""),
+         "days_ago": m["matches"][0]["days_ago"], "similarity": m["matches"][0]["similarity"],
+         "dream_text": m["matches"][0]["dream_text"]}
+        for m in confirmed if m.get("matches")
+    ]
+    return {
+        "dreams": len(dreams), "possible": possible, "confirmed": len(confirmed),
+        "countries": len(countries), "themes": themes, "confirmed_moments": confirmed_cards,
+    }
+
+@api_router.get("/deja/map")
+async def deja_map(request: Request):
+    user = await require_subscribed_user(request)
+    uid = user["user_id"]
+    dreams = await db.deja_dreams.find({"user_id": uid}, {"_id": 0}).to_list(500)
+    moments = await db.deja_moments.find({"user_id": uid}, {"_id": 0}).to_list(500)
+    agg = {}
+    for d in dreams:
+        c = (d.get("country") or "").strip()
+        if c:
+            agg.setdefault(c, {"country": c, "dreams": 0, "moments": 0, "confirmed": 0})
+            agg[c]["dreams"] += 1
+    for m in moments:
+        c = (m.get("country") or "").strip()
+        if c:
+            agg.setdefault(c, {"country": c, "dreams": 0, "moments": 0, "confirmed": 0})
+            agg[c]["moments"] += 1
+            if m.get("verdict") == "confirmed":
+                agg[c]["confirmed"] += 1
+    return sorted(agg.values(), key=lambda x: -(x["dreams"] + x["moments"]))
+
+@api_router.get("/deja/export")
+async def deja_export(request: Request):
+    user = await require_subscribed_user(request)
+    uid = user["user_id"]
+    return {
+        "exported_at": now_iso(),
+        "dreams": await db.deja_dreams.find({"user_id": uid}, {"_id": 0}).to_list(1000),
+        "moments": await db.deja_moments.find({"user_id": uid}, {"_id": 0}).to_list(1000),
+    }
+
+@api_router.delete("/deja/all")
+async def deja_wipe(request: Request):
+    user = await require_subscribed_user(request)
+    uid = user["user_id"]
+    await db.deja_dreams.delete_many({"user_id": uid})
+    await db.deja_moments.delete_many({"user_id": uid})
+    return {"ok": True}
+
+@api_router.post("/deja/transcribe")
+async def deja_transcribe(request: Request, file: UploadFile = File(...)):
+    user = await require_subscribed_user(request)
+    from emergentintegrations.llm.openai.speech_to_text import OpenAISpeechToText
+    import tempfile
+    data = await file.read()
+    if len(data) > 25 * 1024 * 1024:
+        raise HTTPException(413, "Audio too large (max 25MB)")
+    with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
+        tmp.write(data)
+        path = tmp.name
+    try:
+        stt = OpenAISpeechToText(api_key=EMERGENT_KEY)
+        with open(path, "rb") as f:
+            r = await stt.transcribe(f)
+        text = r.text if hasattr(r, "text") else (r.get("text") if isinstance(r, dict) else str(r))
+        return {"text": text}
+    except Exception as e:
+        logger.error(f"deja transcribe failed: {e}")
+        raise HTTPException(500, "Transcription failed")
+    finally:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
 
 # ---------------- Health check ----------------
 @api_router.get("/")

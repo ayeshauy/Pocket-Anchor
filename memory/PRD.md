@@ -78,6 +78,20 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - Landing copy audited against shipped product: removed/rewrote unbuilt claims (client-side AES-256, decoy password, EXIF stripping, SLM translation, USDC rails, care orchestration, proactive monitoring, granular journal sharing). FAQ Q1/Q3/Q4/Q9/Q10 now describe real features (private-by-default, Notes & Recipes decoy mode, live clinic map, zero-auth safety, guardian circles). Hero badge → "AI-Native · Privacy-First · Crisis Tools Always Free"; About + Pricing zero-knowledge claims rewritten honestly with roadmap note
 - Verified: pillar bar on /with/:slug + /pricing (mobile, logged-in), anonymous anchor page stays nav-free, fixed App.js Router crash (`user` not in scope), FAQ copy contains no zero-knowledge/decoy-password claims
 
+## Implemented (Jun 2026, iter 9) — Déjà (Core Layer)
+- **Déjà feature** at /dashboard/deja (Nomad Pass gated, nav pill desktop+mobile, landing Core Layer card updated): dreams → memories → reality loop
+- Record a Dream: voice (Whisper via OpenAISpeechToText → auto-transcribe) or text + optional location/country/tags; Claude extracts places/objects/people/environment/actions/emotions/colors/sounds automatically
+- Original dream record: timestamped, immutable; reflections append beside (never overwrite)
+- "I'm Experiencing Déjà Vu": moment description → element extraction → semantic matching over dream vault (Claude, meanings not keywords; verified: "carrying luggage through a huge terminal" ↔ "walking through an airport with my suitcase" = 92%) → user verdict (confirmed/possible/coincidence) — user always decides
+- Dream Vault: chronological, searchable, match-status badges, delete per dream
+- Déjà Map: private country-level grouping (dreams/moments/confirmed counts)
+- Profile: counts + recurring themes (descriptive only, no diagnostic language) + privacy panel (export JSON, delete all with confirm, clear AI explanation)
+- Shareable cards: canvas-rendered night-gradient PNG with dream/reality/similarity, location toggle, download
+- Backend: /api/deja/{dreams, moments, moments/:id/verdict, dreams/:id/reflection, profile, map, export, all, transcribe} — all auth-scoped per user
+- **testing_agent iteration_3: 18/18 backend pytest + 100% frontend** — extraction JSON keys, reflection immutability, 92% semantic match, verdict propagation, gating UI, privacy panel all verified
+- Follow-up fixes: server-side Nomad Pass enforcement (`require_subscribed_user`) on all /api/deja/* (12 handlers) + /api/medical/* (3 handlers); DialogDescription a11y fix on reflection dialog. Verified: subscribed 200, unsubscribed 402 on gated endpoints, free surfaces (journal/evidence/rebuilding/clinics) remain open
+- Language guardrails enforced: "possible match", "similarity, not proof", "you decide what it means"; no prediction claims anywhere
+
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL

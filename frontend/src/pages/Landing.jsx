@@ -34,11 +34,12 @@ const PILLARS = [
     features: [
       ['Spatial Health Guide', 'live clinic map with trust scores'],
       ['Medical Vault', 'medications, allergies, conditions, visits'],
+      ['Déjà', 'dreams, memory & the strange familiar'],
       ['Global Doctor Network', 'telehealth-aware specialists'],
       ['24/7 emergency filtering', 'care that never sleeps'],
       ['Language tags', 'find a clinician who speaks yours'],
     ],
-    modules: ['◉ Health Guide', '▤ Med Vault', '✚ Doctors'],
+    modules: ['◉ Health Guide', '▤ Med Vault', '🌙 Déjà', '✚ Doctors'],
     bg: 'from-orange to-[#8a3a12]', accent: '#F36B38',
   },
   {

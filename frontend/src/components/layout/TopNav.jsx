@@ -40,6 +40,7 @@ export default function TopNav({ onSignIn }) {
           <nav className="hidden md:flex items-center gap-1 text-sm">
             <NavPill to="/dashboard" label="Sanctuary" testId="nav-sanctuary" />
             <NavPill to="/dashboard/health" label="Health" testId="nav-health" />
+            <NavPill to="/dashboard/deja" label="Déjà" testId="nav-deja" />
             <NavPill to="/safety" label="Safety" testId="nav-safety" />
           </nav>
         ) : (
@@ -111,6 +112,7 @@ export default function TopNav({ onSignIn }) {
         <div className="md:hidden border-t border-willow/10 px-4 py-2.5 flex items-center justify-center gap-1 bg-cloud/90" data-testid="mobile-pillar-nav">
           <MobilePill to="/dashboard" label="Sanctuary" testId="mobile-pill-sanctuary" />
           <MobilePill to="/dashboard/health" label="Health" testId="mobile-pill-health" />
+          <MobilePill to="/dashboard/deja" label="Déjà" testId="mobile-pill-deja" />
           <MobilePill to="/safety" label="Safety" testId="mobile-pill-safety" />
         </div>
       )}
@@ -122,6 +124,7 @@ export default function TopNav({ onSignIn }) {
             <>
               <MobileLink to="/dashboard" label="Sanctuary" testId="mobile-nav-sanctuary" onClick={close} />
               <MobileLink to="/dashboard/health" label="Health" testId="mobile-nav-health" onClick={close} />
+              <MobileLink to="/dashboard/deja" label="Déjà" testId="mobile-nav-deja" onClick={close} />
               <MobileLink to="/safety" label="Safety" testId="mobile-nav-safety" onClick={close} />
               <MobileLink to="/pricing" label="Plans & Pricing" testId="mobile-nav-pricing" onClick={close} />
             </>

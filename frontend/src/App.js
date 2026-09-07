@@ -12,6 +12,7 @@ import PricingPage from '@/pages/PricingPage';
 import Onboarding from '@/pages/Onboarding';
 import Dashboard from '@/pages/Dashboard';
 import HealthPage from '@/pages/HealthPage';
+import DejaPage from '@/pages/DejaPage';
 import SafetyPage from '@/pages/SafetyPage';
 import AnchorPublic from '@/pages/AnchorPublic';
 import GuardianAccept from '@/pages/GuardianAccept';
@@ -55,6 +56,7 @@ function Router() {
         } />
         <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
         <Route path="/dashboard/health" element={<Protected><HealthPage /></Protected>} />
+        <Route path="/dashboard/deja" element={<Protected><DejaPage /></Protected>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <QuickExitDock />
