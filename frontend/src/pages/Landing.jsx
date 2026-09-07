@@ -6,7 +6,7 @@ import MoodPulseOrb from '@/components/sanctuary/MoodPulseOrb';
 import LiveSandbox from '@/components/landing/LiveSandbox';
 import { API } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
-import { HeartHandshake, Globe2, ShieldCheck, Lock, DoorOpen, Compass, ArrowRight, Check, Clapperboard } from 'lucide-react';
+import { HeartHandshake, Globe2, ShieldCheck, Lock, DoorOpen, Compass, ArrowRight, Check, Clapperboard, Siren, MapPin, Languages, LockKeyhole, Luggage, Moon as MoonIcon } from 'lucide-react';
 
 const PILLARS = [
   {
@@ -219,6 +219,42 @@ export default function Landing({ onSignIn }) {
             );
           })}
         </div>
+      </section>
+
+      {/* ONE APP · SIX MOMENTS */}
+      <section id="moments" className="max-w-5xl mx-auto px-5 lg:px-10 py-16" data-testid="section-moments">
+        <p className="text-xs uppercase tracking-[0.3em] text-willow-light">One app. Six moments.</p>
+        <h2 className="font-serif text-4xl md:text-5xl text-willow-dark font-light mt-3">One app. Six moments.</h2>
+        <p className="mt-4 text-[#535E56] max-w-xl leading-relaxed">
+          From everyday travel to unexpected moments, Anchor keeps the essentials within reach.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-3 mt-10">
+          {[
+            { icon: Siren, when: 'When something goes wrong', answer: 'Anchor helps.' },
+            { icon: MapPin, when: 'When you need information', answer: 'Anchor finds it.' },
+            { icon: Languages, when: 'When you need to communicate', answer: 'Anchor translates it.' },
+            { icon: LockKeyhole, when: 'When you need your personal information', answer: 'Anchor protects it.' },
+            { icon: Luggage, when: "When you're traveling normally", answer: 'Anchor keeps you prepared.' },
+            { icon: MoonIcon, when: 'When you want something fun', answer: 'Déjà.' },
+          ].map((m, i) => {
+            const I = m.icon;
+            return (
+              <div key={m.when} data-testid={`moment-row-${i + 1}`}
+                   className="flex items-center gap-4 rounded-2xl bg-white/70 border border-willow/10 px-5 py-4 hover:bg-mimosa-soft/40 transition">
+                <div className="w-10 h-10 rounded-full bg-cloud-subtle flex items-center justify-center flex-shrink-0">
+                  <I className="w-4.5 h-4.5 text-willow" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-willow-light">{m.when}</p>
+                  <p className="font-serif text-xl text-willow-dark leading-tight">{m.answer}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-10 text-center font-serif italic text-willow-light">
+          One layer for the moments you can plan for — and the ones you can't.
+        </p>
       </section>
 
       {/* LIVE SANDBOX */}

@@ -13,7 +13,7 @@ from typing import Optional, List
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 import os, uuid, re, logging, requests, asyncio, hmac, io
-from emailer import send_email, guardian_invite_html, weekly_summary_html, pulse_notify_html, owner_pulse_html
+from emailer import send_email, guardian_invite_html, weekly_summary_html, pulse_notify_html, owner_pulse_html, contact_ping_html
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -1299,6 +1299,225 @@ async def deja_transcribe(request: Request, file: UploadFile = File(...)):
             os.unlink(path)
         except OSError:
             pass
+
+# ---------------- Core Layer tools (Essential + Preparedness) ----------------
+class TranslateIn(BaseModel):
+    text: str
+    language: str
+
+@api_router.post("/translate")
+async def translate_text(payload: TranslateIn, request: Request):
+    await require_subscribed_user(request)
+    if not payload.text.strip():
+        raise HTTPException(400, "Text required")
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    chat = LlmChat(
+        api_key=EMERGENT_KEY, session_id=f"translate-{uuid.uuid4().hex[:8]}",
+        system_message=("You are a precise health & safety translator for travelers. Translate the user's text "
+                        "into the requested language. Return ONLY the translation — natural, spoken, respectful. "
+                        "No explanations, no quotes.")).with_model("anthropic", "claude-sonnet-4-6")
+    resp = await chat.send_message(UserMessage(text=f"Language: {payload.language}\nText: {payload.text}"))
+    translated = resp if isinstance(resp, str) else getattr(resp, "text", str(resp))
+    return {"translation": translated.strip().strip('"'), "language": payload.language}
+
+NEARBY_MAP = {
+    "hospital": lambda: [dict(c, category="Hospital") for c in CLINICS if c["twenty_four_seven"]],
+    "clinic": lambda: [dict(c, category="Clinic") for c in CLINICS],
+    "pharmacy": lambda: [{"id": f"ph-{c['id']}", "name": f"Pharmacy near {c['name']}", "city": c["city"], "country": c["country"], "category": "Pharmacy", "phone": c["phone"], "trust": c["trust"]} for c in CLINICS],
+    "police": lambda: [{"id": "police", "name": "Local Police", "city": "Everywhere", "country": "", "category": "Police", "phone": "911 (US) · 112 (EU) · 110 (Japan)", "trust": None}],
+    "mental_health": lambda: [dict(r, category="Mental health support") for r in RESOURCES if "Crisis" in r["type"]],
+    "lgbtq": lambda: [{"id": "lgbtq-1", "name": "ILGA World directory", "city": "Global", "country": "", "category": "LGBTQ+ support", "phone": "", "url": "https://ilga.org", "trust": None}],
+    "embassy": lambda: [{"id": "emb-1", "name": "Find your embassy", "city": "Global", "country": "", "category": "Embassy / consulate", "phone": "", "url": "https://www.embassypages.com", "trust": None}],
+    "accessible": lambda: [dict(c, category="Accessible services") for c in CLINICS if c["twenty_four_seven"]],
+}
+
+@api_router.get("/nearby")
+async def nearby_help(category: str, request: Request):
+    await require_subscribed_user(request)
+    fn = NEARBY_MAP.get(category)
+    if not fn:
+        raise HTTPException(400, "Unknown category")
+    return fn()
+
+class HealthCardIn(BaseModel):
+    name: str = ""
+    blood_type: str = ""
+    allergies: str = ""
+    medications: str = ""
+    conditions: str = ""
+    emergency_contact: str = ""
+    insurance: str = ""
+
+@api_router.put("/health-card")
+async def put_health_card(payload: HealthCardIn, request: Request):
+    user = await require_subscribed_user(request)
+    doc = payload.dict()
+    doc.update({"user_id": user["user_id"], "updated_at": now_iso()})
+    await db.health_cards.update_one({"user_id": user["user_id"]}, {"$set": doc}, upsert=True)
+    return {"ok": True}
+
+@api_router.get("/health-card")
+async def get_health_card(request: Request):
+    user = await require_subscribed_user(request)
+    return await db.health_cards.find_one({"user_id": user["user_id"]}, {"_id": 0}) or {}
+
+class TrustedContactIn(BaseModel):
+    name: str
+    email: str
+    phone: str = ""
+
+@api_router.post("/trusted-contacts")
+async def add_trusted(payload: TrustedContactIn, request: Request):
+    user = await require_subscribed_user(request)
+    if "@" not in payload.email:
+        raise HTTPException(400, "Valid email required")
+    doc = {"id": str(uuid.uuid4()), "user_id": user["user_id"], "name": payload.name,
+           "email": payload.email.lower(), "phone": payload.phone, "created_at": now_iso()}
+    await db.trusted_contacts.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/trusted-contacts")
+async def list_trusted(request: Request):
+    user = await require_subscribed_user(request)
+    return await db.trusted_contacts.find({"user_id": user["user_id"]}, {"_id": 0}).to_list(20)
+
+@api_router.delete("/trusted-contacts/{cid}")
+async def del_trusted(cid: str, request: Request):
+    user = await require_subscribed_user(request)
+    await db.trusted_contacts.delete_one({"id": cid, "user_id": user["user_id"]})
+    return {"ok": True}
+
+class PingIn(BaseModel):
+    kind: str  # safe | location | help | emergency
+    note: str = ""
+
+@api_router.post("/trusted-contacts/ping")
+async def ping_trusted(payload: PingIn, request: Request):
+    user = await require_subscribed_user(request)
+    if payload.kind not in ("safe", "location", "help", "emergency"):
+        raise HTTPException(400, "Invalid kind")
+    contacts = await db.trusted_contacts.find({"user_id": user["user_id"]}, {"_id": 0}).to_list(20)
+    if not contacts:
+        raise HTTPException(400, "Add a trusted contact first")
+    owner_name = user.get("sanctuary_name") or user.get("name", "Your traveler")
+    sent = 0
+    for c in contacts:
+        try:
+            subject, html = contact_ping_html(c["name"], owner_name, payload.kind, payload.note)
+            await send_email(to=c["email"], subject=subject, html=html)
+            sent += 1
+        except Exception as e:
+            logger.error(f"ping to {c['email']} failed: {e}")
+    await db.contact_pings.insert_one({"id": str(uuid.uuid4()), "user_id": user["user_id"],
+                                       "kind": payload.kind, "note": payload.note, "sent": sent,
+                                       "created_at": now_iso()})
+    return {"ok": True, "sent": sent}
+
+class CheckInIn(BaseModel):
+    destination: str
+    due_at: str  # ISO datetime
+
+@api_router.post("/checkins")
+async def create_checkin(payload: CheckInIn, request: Request):
+    user = await require_subscribed_user(request)
+    doc = {"id": str(uuid.uuid4()), "user_id": user["user_id"], "destination": payload.destination,
+           "due_at": payload.due_at, "status": "active", "created_at": now_iso()}
+    await db.checkins.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/checkins")
+async def list_checkins(request: Request):
+    user = await require_subscribed_user(request)
+    return await db.checkins.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(20)
+
+@api_router.post("/checkins/{cid}/safe")
+async def checkin_safe(cid: str, request: Request):
+    user = await require_subscribed_user(request)
+    await db.checkins.update_one({"id": cid, "user_id": user["user_id"]}, {"$set": {"status": "safe"}})
+    return {"ok": True}
+
+@api_router.post("/checkins/{cid}/alert")
+async def checkin_alert(cid: str, request: Request):
+    user = await require_subscribed_user(request)
+    ci = await db.checkins.find_one({"id": cid, "user_id": user["user_id"]}, {"_id": 0})
+    if not ci:
+        raise HTTPException(404, "Check-in not found")
+    await db.checkins.update_one({"id": cid}, {"$set": {"status": "alerted"}})
+    contacts = await db.trusted_contacts.find({"user_id": user["user_id"]}, {"_id": 0}).to_list(20)
+    owner_name = user.get("sanctuary_name") or user.get("name", "Your traveler")
+    sent = 0
+    for c in contacts:
+        try:
+            subject, html = contact_ping_html(c["name"], owner_name, "emergency",
+                                              f"Missed check-in: {ci['destination']} (due {ci['due_at']})")
+            await send_email(to=c["email"], subject=subject, html=html)
+            sent += 1
+        except Exception as e:
+            logger.error(f"checkin alert to {c['email']} failed: {e}")
+    return {"ok": True, "sent": sent}
+
+class VaultItemIn(BaseModel):
+    label: str
+    kind: str = "note"  # note | document | contact | insurance | health
+    content: str = ""
+    media_path: str = ""
+
+@api_router.post("/vault")
+async def vault_add(payload: VaultItemIn, request: Request):
+    user = await require_subscribed_user(request)
+    doc = {"id": str(uuid.uuid4()), "user_id": user["user_id"], **payload.dict(), "created_at": now_iso()}
+    await db.vault_items.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+@api_router.get("/vault")
+async def vault_list(request: Request):
+    user = await require_subscribed_user(request)
+    return await db.vault_items.find({"user_id": user["user_id"]}, {"_id": 0}).sort("created_at", -1).to_list(200)
+
+@api_router.delete("/vault/{vid}")
+async def vault_del(vid: str, request: Request):
+    user = await require_subscribed_user(request)
+    await db.vault_items.delete_one({"id": vid, "user_id": user["user_id"]})
+    return {"ok": True}
+
+COUNTRY_INFO = {
+    "japan": {"emergency": "119 (ambulance) · 110 (police)", "embassy": "U.S. Embassy Tokyo · +81-3-3224-5000"},
+    "portugal": {"emergency": "112", "embassy": "U.S. Embassy Lisbon · +351-21-727-3300"},
+    "thailand": {"emergency": "1669 (medical) · 191 (police)", "embassy": "U.S. Embassy Bangkok · +66-2-205-4000"},
+    "mexico": {"emergency": "911", "embassy": "U.S. Embassy Mexico City · +52-55-5080-2000"},
+    "singapore": {"emergency": "995 (ambulance) · 999 (police)", "embassy": "U.S. Embassy Singapore · +65-6476-9100"},
+    "costa rica": {"emergency": "911", "embassy": "U.S. Embassy San José · +506-2519-2000"},
+    "turkey": {"emergency": "112", "embassy": "U.S. Embassy Ankara · +90-312-455-5555"},
+    "france": {"emergency": "112", "embassy": "U.S. Embassy Paris · +33-1-43-12-22-22"},
+}
+GENERIC_COUNTRY = {"emergency": "112 (EU) · 911 (US) — check local number", "embassy": "Find yours at embassypages.com"}
+
+class TripPackIn(BaseModel):
+    country: str
+    days_remaining: Optional[int] = None
+    accommodation: str = ""
+    notes: str = ""
+
+@api_router.put("/trip-pack")
+async def put_trip_pack(payload: TripPackIn, request: Request):
+    user = await require_subscribed_user(request)
+    doc = payload.dict()
+    doc.update({"user_id": user["user_id"], "updated_at": now_iso()})
+    await db.trip_packs.update_one({"user_id": user["user_id"]}, {"$set": doc}, upsert=True)
+    return {"ok": True}
+
+@api_router.get("/trip-pack")
+async def get_trip_pack(request: Request):
+    user = await require_subscribed_user(request)
+    pack = await db.trip_packs.find_one({"user_id": user["user_id"]}, {"_id": 0}) or {}
+    info = COUNTRY_INFO.get((pack.get("country") or "").strip().lower(), GENERIC_COUNTRY)
+    card = await db.health_cards.find_one({"user_id": user["user_id"]}, {"_id": 0}) or {}
+    contacts = await db.trusted_contacts.find({"user_id": user["user_id"]}, {"_id": 0}).to_list(20)
+    return {**pack, "emergency_number": info["emergency"], "embassy": info["embassy"],
+            "health_card": card, "trusted_contacts": contacts}
 
 # ---------------- Health check ----------------
 @api_router.get("/")

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import ClinicMap from '@/components/health/ClinicMap';
+import CoreTools from '@/components/health/CoreTools';
 import { MapPin, Phone, Clock, Globe, Pill, X, Plus, Stethoscope } from 'lucide-react';
 
 export default function HealthPage() {
@@ -34,11 +35,13 @@ export default function HealthPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-5 lg:px-10 py-10">
-      <p className="text-xs uppercase tracking-[0.28em] text-willow-light">Nomadic Health & Medical Vault</p>
+      <p className="text-xs uppercase tracking-[0.28em] text-willow-light">Core Layer · Nomadic Health & Travel Safety</p>
       <h1 className="font-serif text-4xl md:text-5xl text-willow-dark font-light mt-2">Care that travels with you.</h1>
-      <p className="text-[#535E56] mt-3 max-w-2xl">Vetted clinics, an encrypted vault for your history, and language-aware triage — wherever the day lands.</p>
+      <p className="text-[#535E56] mt-3 max-w-2xl">Essential tools within seconds, preparedness before you need it — and Déjà for the ordinary, wonderful moments.</p>
 
-      <Tabs defaultValue="clinics" className="mt-8">
+      <CoreTools />
+
+      <Tabs defaultValue="clinics" className="mt-12">
         <TabsList className="bg-cloud-subtle rounded-full p-1 flex-wrap h-auto">
           <TabsTrigger value="clinics" data-testid="health-tab-clinics" className="rounded-full data-[state=active]:bg-orange data-[state=active]:text-cloud">Spatial Health Guide</TabsTrigger>
           <TabsTrigger value="vault" data-testid="health-tab-vault" className="rounded-full data-[state=active]:bg-orange data-[state=active]:text-cloud">Medical Vault</TabsTrigger>

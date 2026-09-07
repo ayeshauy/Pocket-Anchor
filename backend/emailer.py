@@ -150,6 +150,25 @@ def guardian_invite_html(owner_name: str, sanctuary_name: str, accept_url: str, 
     return subject, _shell(inner)
 
 
+def contact_ping_html(contact_name: str, owner_name: str, kind: str, note: str) -> tuple[str, str]:
+    labels = {
+        "safe": ("I'm safe", "#4C5D4B", "sent an I'm-safe check-in"),
+        "location": ("Location shared", "#9197AA", "shared their location with you"),
+        "help": ("I need help", "#C1521E", "asked for help — please reach out"),
+        "emergency": ("Emergency", "#C1521E", "triggered an emergency ping — please contact them now"),
+    }
+    label, color, action = labels.get(kind, labels["help"])
+    subject = f"{owner_name}: {label}"
+    note_html = f'<p style="font-family:Georgia,serif;font-size:18px;color:#1F2623;font-style:italic;margin:16px 0">"{escape(note)}"</p>' if note else ""
+    inner = (
+        f'<p style="font-size:26px;margin:0 0 12px;color:{color}">{escape(label)}</p>'
+        f'<p style="font-family:Arial,sans-serif;font-size:14px;color:#535E56;line-height:1.7">'
+        f"Hi {escape(contact_name)}, {escape(owner_name)} {escape(action)} through Pocket Anchor.</p>"
+        f"{note_html}"
+    )
+    return subject, _shell(inner)
+
+
 def pulse_notify_html(guardian_name: str, owner_name: str, note: str, circle_url: str) -> tuple[str, str]:
     subject = f"{owner_name} sent you a soft pulse"
     note_html = f'<p style="font-family:Georgia,serif;font-size:18px;color:#1F2623;font-style:italic;margin:16px 0">"{escape(note)}"</p>' if note else ""

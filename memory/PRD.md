@@ -92,6 +92,20 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - Follow-up fixes: server-side Nomad Pass enforcement (`require_subscribed_user`) on all /api/deja/* (12 handlers) + /api/medical/* (3 handlers); DialogDescription a11y fix on reflection dialog. Verified: subscribed 200, unsubscribed 402 on gated endpoints, free surfaces (journal/evidence/rebuilding/clinics) remain open
 - Language guardrails enforced: "possible match", "similarity, not proof", "you decide what it means"; no prediction claims anywhere
 
+## Implemented (Jun 2026, iter 10) — Core Layer expansion (incremental, no redesign)
+- Landing: "One app. Six moments." section (six compact rows + understated closing line) inserted between Platform and Live Sandbox — hero/brand/sections untouched
+- Core Layer hub (`CoreTools.jsx` on Health page, grouped Essential / Preparedness / Explore):
+  - **SOS** — 911/112/988 direct-call grid + Quick Exit (reuses existing `anchor:quick-exit` event; no duplication)
+  - **Nearby Help** — 8 tap categories (hospital/clinic/pharmacy/police/mental-health/LGBTQ+/embassy/accessible) via `GET /api/nearby?category=` reusing clinic + resource data
+  - **Translate** — Claude health/safety translation into 10 languages + "SHOW THIS TO SOMEONE" high-contrast full card (`POST /api/translate`)
+  - **Health Card** — optional fields (name/blood type/allergies/meds/conditions/emergency contact/insurance), `PUT/GET /api/health-card`, read-only SHOW view
+  - **Trusted Contact** — CRUD + one-tap "I'm safe"/"I need help" pings that email contacts via Resend (`contact_ping_html` template, G4-gated)
+  - **Check-In** — destination + due time; expired → "Are you okay?" with I'm safe / Alert my contact (emails trusted contacts)
+  - **Private Vault** — labeled notes/documents/contacts/insurance/health items (`/api/vault`)
+  - **Trip Pack** — country + days remaining → shows local emergency number, embassy, trusted contacts, health card summary (`/api/trip-pack`, country info table)
+  - **Explore → Déjà** module card linking to existing Déjà feature
+- All new endpoints gated server-side with `require_subscribed_user` (Nomad Pass)
+
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL
