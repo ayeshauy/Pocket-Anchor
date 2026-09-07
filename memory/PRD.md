@@ -112,6 +112,10 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - **P2 Accessibility/semantics**: <main id="main-content"> wrapper + skip-to-content link; prefers-reduced-motion disables orb/breath/firefly animations; reduced transition durations
 - **QA verified**: zero horizontal overflow at 390/768/1920; title/canonical/OG/twitter/JSON-LD/robots/sitemap all served correctly
 
+## Implemented (Jun 2026, iter 12) — Mobile audit & fix
+- Full 390px audit of landing (all sections), pricing, safety (+navigator), dashboard (all 5 tabs), health (+nearby open), déjà (all 5 tabs), anchor public: all PASS except logged-in /with/:slug header overflow (439px — hamburger + Launch Sanctuary + logout cluster)
+- Fix: Launch Sanctuary button hidden below sm for signed-in non-dashboard pages; added "Launch Sanctuary" as first item in the mobile menu panel; verified no offenders remain, dashboard regression clean
+
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL

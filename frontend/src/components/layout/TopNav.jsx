@@ -81,7 +81,7 @@ export default function TopNav({ onSignIn }) {
           {user ? (
             <div className="flex items-center gap-2">
               {!isDash && (
-                <Link to="/dashboard">
+                <Link to="/dashboard" className="hidden sm:block">
                   <Button data-testid="launch-sanctuary-btn" className="rounded-full bg-willow hover:bg-willow-dark text-cloud px-5">
                     Launch Sanctuary
                   </Button>
@@ -121,6 +121,7 @@ export default function TopNav({ onSignIn }) {
       {/* Mobile menu panel */}
       {mobileOpen && (
         <div id="mobile-menu-panel" role="navigation" aria-label="Mobile" className={`border-t border-willow/10 bg-cloud/95 backdrop-blur-xl px-5 py-4 space-y-1 ${isDash ? 'md:hidden' : 'lg:hidden'}`} data-testid="mobile-menu-panel">
+          {user && !isDash && <MobileLink to="/dashboard" label="Launch Sanctuary" testId="mobile-nav-launch" onClick={close} />}
           {isDash && user ? (
             <>
               <MobileLink to="/dashboard" label="Sanctuary" testId="mobile-nav-sanctuary" onClick={close} />
