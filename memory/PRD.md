@@ -116,6 +116,10 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - Full 390px audit of landing (all sections), pricing, safety (+navigator), dashboard (all 5 tabs), health (+nearby open), déjà (all 5 tabs), anchor public: all PASS except logged-in /with/:slug header overflow (439px — hamburger + Launch Sanctuary + logout cluster)
 - Fix: Launch Sanctuary button hidden below sm for signed-in non-dashboard pages; added "Launch Sanctuary" as first item in the mobile menu panel; verified no offenders remain, dashboard regression clean
 
+## Implemented (Jun 2026, iter 13) — Google Auth confirmation & cleanup
+- Emergent-managed Google sign-in confirmed fully wired and verified: Continue with Google → auth.emergentagent.com redirect → /api/auth/session exchange → 7-day httpOnly cookie; /me 401 without auth / 200 with session; logout clears session
+- Removed the placeholder "email magic link" section from AuthModal (was never wired, just rerouted to Google) — modal is now clean single-option Google sign-in
+
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL
