@@ -124,7 +124,7 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL
 - Stripe sandbox status: **claimed**; live keys pending Stripe KYC approval — auto-swap + auto-redeploy on `account_activated`
-- **PENDING — custom domain pocketanchor.tech**: user linking DNS via platform UI (support steps shared). Once the domain resolves to the app, update backend `APP_PUBLIC_URL` to `https://pocketanchor.tech` (guardian/circle/OG links) and restart backend. Frontend index.html canonical/OG/sitemap already reference the domain.
+- **Custom domain pocketanchor.tech LIVE** (verified by user): serves app (200), API, robots, sitemap, OG routes; backend `APP_URL`/`APP_PUBLIC_URL` flipped to https://pocketanchor.tech; CORS_ORIGINS="*" already covers it; Google Auth origin-agnostic (window.location.origin) — works on both domains
 - **PENDING — post-approval $0 verification**: once Stripe approves, confirm live keys landed in backend/.env (rk_live/sk_live), create a live-mode checkout session, and confirm it opens. Run without prompting.
 - Official logo added: anchor icon at /app/frontend/public/logo.png (nav, auth modal, favicon, OG cards)
 
