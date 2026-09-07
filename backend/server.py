@@ -24,6 +24,7 @@ db = client[os.environ['DB_NAME']]
 
 APP_URL = (os.environ.get("APP_PUBLIC_URL") or "").rstrip("/")
 CRON_SECRET = os.environ.get("WEBHOOK_CRON_SECRET", "")
+COMPED_EMAILS = {e.strip().lower() for e in os.environ.get("COMPED_EMAILS", "").split(",") if e.strip()}
 
 import stripe
 from fastapi.responses import RedirectResponse
@@ -224,6 +225,16 @@ async def auth_session(payload: SessionInit, response: Response):
             "created_at": now_iso(),
         })
     user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+
+    # Comped accounts: auto-grant full Nomad Pass on every sign-in (env-driven, idempotent)
+    if email.lower() in COMPED_EMAILS:
+        sub = (user_doc or {}).get("subscription") or {}
+        if not sub.get("active"):
+            await db.users.update_one({"user_id": user_id}, {"$set": {"subscription": {
+                "active": True, "plan": "nomad-pass", "comped": True,
+                "note": "Comped access", "linked_at": now_iso(),
+            }}})
+            user_doc = await db.users.find_one({"user_id": user_id}, {"_id": 0})
 
     expires_at = datetime.now(timezone.utc) + timedelta(days=7)
     await db.user_sessions.insert_one({

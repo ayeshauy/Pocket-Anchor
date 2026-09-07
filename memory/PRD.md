@@ -125,6 +125,9 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL
 - Stripe sandbox status: **claimed**; live keys pending Stripe KYC approval — auto-swap + auto-redeploy on `account_activated`
 - **Custom domain pocketanchor.tech LIVE** (verified by user): serves app (200), API, robots, sitemap, OG routes; backend `APP_URL`/`APP_PUBLIC_URL` flipped to https://pocketanchor.tech; CORS_ORIGINS="*" already covers it; Google Auth origin-agnostic (window.location.origin) — works on both domains
+- **Indexing**: IndexNow submitted (/, /pricing, /safety, sitemap) — key file hosted at /public; Google Search Console requires user's own verification (HTML file or DNS TXT) — offered to host the verification file when shared
+- **Comped account**: ayeshafromasia@gmail.com granted full Nomad Pass via DB subscription record (no payment), verified via custom domain API
+- **FIX — prod/preview DB split**: direct DB seed only affected preview; switched to env-driven comp — `COMPED_EMAILS` in backend/.env, auto-grant on every sign-in in `/api/auth/session` (idempotent, works on both preview and prod). Redeploy dispatched to ship it.
 - **PENDING — post-approval $0 verification**: once Stripe approves, confirm live keys landed in backend/.env (rk_live/sk_live), create a live-mode checkout session, and confirm it opens. Run without prompting.
 - Official logo added: anchor icon at /app/frontend/public/logo.png (nav, auth modal, favicon, OG cards)
 
