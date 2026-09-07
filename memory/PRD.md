@@ -106,6 +106,12 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
   - **Explore → Déjà** module card linking to existing Déjà feature
 - All new endpoints gated server-side with `require_subscribed_user` (Nomad Pass)
 
+## Implemented (Jun 2026, iter 11) — Optimization & SEO polish (no redesign)
+- **P1 Technical SEO**: title → "Private Travel Health & Safety Platform | Pocket Anchor" (55 chars); canonical https://pocketanchor.tech/; full OG + Twitter card meta; JSON-LD graph (Organization + WebSite + SoftwareApplication w/ real $12 offer, no fake ratings); robots.txt (disallows /dashboard, /onboarding, /circle, /guardian, /api) + sitemap.xml (/, /pricing, /safety)
+- **P0 Performance**: logo downscaled 1596px→256px (16KB served, original kept as logo-full.png); branded og-cover.png (1200×630, 57KB) generated in-site identity; video already preload=metadata + dual codec
+- **P2 Accessibility/semantics**: <main id="main-content"> wrapper + skip-to-content link; prefers-reduced-motion disables orb/breath/firefly animations; reduced transition durations
+- **QA verified**: zero horizontal overflow at 390/768/1920; title/canonical/OG/twitter/JSON-LD/robots/sitemap all served correctly
+
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL

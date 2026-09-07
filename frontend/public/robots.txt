@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /onboarding
+Disallow: /circle/
+Disallow: /guardian/
+Disallow: /api/
+
+Sitemap: https://pocketanchor.tech/sitemap.xml

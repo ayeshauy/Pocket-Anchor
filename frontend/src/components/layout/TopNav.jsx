@@ -27,6 +27,7 @@ export default function TopNav({ onSignIn }) {
 
   return (
     <header className="sticky top-0 z-30 backdrop-blur-xl bg-cloud/85 border-b border-willow/10">
+      <a href="#main-content" className="skip-link">Skip to content</a>
       <div className="max-w-7xl mx-auto px-5 lg:px-8 h-16 flex items-center justify-between gap-4">
         <Link to="/" className="flex items-center gap-2.5 flex-shrink-0" data-testid="brand-link">
           <img src="/logo.png" alt="Pocket Anchor" className="w-8 h-8 rounded-lg" data-testid="brand-logo" />

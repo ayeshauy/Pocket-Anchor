@@ -44,7 +44,8 @@ function Router() {
     <>
       {showNav && <TopNav onSignIn={() => setAuthOpen(true)} />}
       <AuthModal open={authOpen} onOpenChange={setAuthOpen} />
-      <Routes>
+      <main id="main-content">
+        <Routes>
         <Route path="/" element={<Landing onSignIn={() => setAuthOpen(true)} />} />
         <Route path="/safety" element={<SafetyPage />} />
         <Route path="/pricing" element={<PricingPage />} />
@@ -58,7 +59,8 @@ function Router() {
         <Route path="/dashboard/health" element={<Protected><HealthPage /></Protected>} />
         <Route path="/dashboard/deja" element={<Protected><DejaPage /></Protected>} />
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+      </main>
       <QuickExitDock />
     </>
   );

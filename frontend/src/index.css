@@ -135,6 +135,21 @@
 /* Selection */
 ::selection { background: rgba(247,181,87,0.4); color: #1F2623; }
 
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .orb-breath, .soft-float, .ring-478, .ring-box, .ring-wave, .firefly { animation: none !important; }
+  html { scroll-behavior: auto; }
+  * { transition-duration: 0.01ms !important; }
+}
+
+/* Skip link */
+.skip-link {
+  position: absolute; left: -9999px; top: 0; z-index: 100;
+  background: var(--willow); color: var(--cloud); padding: 10px 18px; border-radius: 0 0 12px 0;
+  font-family: 'DM Sans', sans-serif; font-size: 14px;
+}
+.skip-link:focus { left: 0; }
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: rgba(76,93,75,0.25); border-radius: 999px; }
