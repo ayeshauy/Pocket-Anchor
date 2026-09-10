@@ -33,13 +33,13 @@ const PILLARS = [
     tagline: 'Non-custodial health infrastructure for people who move: your records, your money, your care, across borders.',
     features: [
       ['Spatial Health Guide', 'live clinic map with trust scores'],
-      ['Medical Vault', 'medications, allergies, conditions, visits'],
+      ['My Anchor hub', 'emergency card, safety plan, trusted contacts'],
+      ['Medical Vault', 'records, labs, prescriptions, documents'],
+      ['Medical Translator', 'doctor-ready cards in 10 languages'],
       ['Déjà', 'dreams, memory & the strange familiar'],
       ['Global Doctor Network', 'telehealth-aware specialists'],
-      ['24/7 emergency filtering', 'care that never sleeps'],
-      ['Language tags', 'find a clinician who speaks yours'],
     ],
-    modules: ['◉ Health Guide', '▤ Med Vault', '🌙 Déjà', '✚ Doctors'],
+    modules: ['◉ Health Guide', '⚓ My Anchor', '▤ Med Vault', '🗣 Translate', '🌙 Déjà', '✚ Doctors'],
     bg: 'from-orange to-[#8a3a12]', accent: '#F36B38',
   },
   {

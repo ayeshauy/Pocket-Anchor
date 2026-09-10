@@ -409,9 +409,9 @@ function last14Days(pulses) {
 
 function MoodChart({ data }) {
   return (
-    <div className="grid grid-cols-14 gap-1.5 mt-4">
+    <div className="grid grid-cols-7 gap-1.5 mt-4" data-testid="mood-rhythm-chart">
       {data.map((d, i) => {
-        const c = d.state ? MOOD_STATES[d.state].color : 'rgba(76,93,75,0.12)';
+        const c = d.state ? (MOOD_STATES[d.state]?.color || '#C1521E') : 'rgba(76,93,75,0.12)';
         return (
           <div key={i} className="flex flex-col items-center gap-1">
             <div className="w-full aspect-square rounded" style={{ background: c }} />

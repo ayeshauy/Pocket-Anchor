@@ -123,6 +123,9 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 ## Implemented (Sep 2026, iter 14) — Deep safety/health/travel layer (additive, zero removals)
 - **My Anchor** hub on Health page: Readiness card ("You're anchored" calm-preparedness state), **I Need Help** unified entry (6 options routing to existing features — no duplication), **Emergency Card** (user-toggled fields + preferred language + instructions, SHOW view, localStorage offline cache), **My Safety Plan** (6 sections, auth-only not paywalled, offline-cached, private by default)
 - **Silent Emotional Check-In**: Mood Pulse now has 5 states (added "I need help" / "Don't want to talk"); need_help pulses surface quietly in the guardian feed
+- **REVERTED (iter 14b)**: user asked to keep only Grounded/Hopeful/Struggling — 5 long pills overflowed the 390px mood selector row (root cause of the reported mobile dashboard break). STATES back to 3; selector row now flex-wraps as a hardening measure. Backend still accepts legacy states; existing need_help records remain readable.
+- Also fixed latent bug: 14-day mood chart used invalid `grid-cols-14` (rendered as single column) → now `grid-cols-7` (two tidy rows)
+- **iteration_5 catch + fix**: reverting states crashed MoodChart on legacy `need_help` DB records (unguarded lookup) → guarded with orange fallback (`MOOD_STATES[d.state]?.color || '#C1521E'`); legacy pulses render as orange cells, no crash
 - **Trusted Contacts enhanced**: relationship + priority + notes fields, new "Need someone to know" ping (emails contacts); Guardians untouched
 - **Medical Translator**: new mode in existing Translate (structured symptoms/started/severity/allergies/meds → doctor-ready translated card) + "I can't explain it" guided wizard; verified real Thai output
 - **Healthcare Near Me**: Nearby Help gained city/country search (q param) + emergency badges; existing categories preserved
