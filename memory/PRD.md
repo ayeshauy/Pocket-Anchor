@@ -120,6 +120,18 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - Emergent-managed Google sign-in confirmed fully wired and verified: Continue with Google → auth.emergentagent.com redirect → /api/auth/session exchange → 7-day httpOnly cookie; /me 401 without auth / 200 with session; logout clears session
 - Removed the placeholder "email magic link" section from AuthModal (was never wired, just rerouted to Google) — modal is now clean single-option Google sign-in
 
+## Implemented (Sep 2026, iter 14) — Deep safety/health/travel layer (additive, zero removals)
+- **My Anchor** hub on Health page: Readiness card ("You're anchored" calm-preparedness state), **I Need Help** unified entry (6 options routing to existing features — no duplication), **Emergency Card** (user-toggled fields + preferred language + instructions, SHOW view, localStorage offline cache), **My Safety Plan** (6 sections, auth-only not paywalled, offline-cached, private by default)
+- **Silent Emotional Check-In**: Mood Pulse now has 5 states (added "I need help" / "Don't want to talk"); need_help pulses surface quietly in the guardian feed
+- **Trusted Contacts enhanced**: relationship + priority + notes fields, new "Need someone to know" ping (emails contacts); Guardians untouched
+- **Medical Translator**: new mode in existing Translate (structured symptoms/started/severity/allergies/meds → doctor-ready translated card) + "I can't explain it" guided wizard; verified real Thai output
+- **Healthcare Near Me**: Nearby Help gained city/country search (q param) + emergency badges; existing categories preserved
+- **Travel Safety**: Trip Pack now shows hospitals on file for the trip country + useful local phrases (6 languages)
+- **Health Vault expansion**: Medical Vault kinds extended (records/prescriptions/labs/imaging/vaccinations/doctor docs/discharge/insurance) + file attach support
+- **Privacy Center** (/privacy, public, footer link): honest data practices — explicitly no zero-knowledge/HIPAA claims
+- Backend: /api/anchor (+readiness), /api/emergency-card, /api/safety-plan, /api/translate/medical — all verified via curl; existing features untouched (verified no route/UI removals)
+- **testing_agent iteration_4: 22/22 backend pytest + 100% frontend** — all regression testids intact on /dashboard, 5-state orb verified, My Anchor hub end-to-end, medical translation real Claude output, auth-only (safety-plan) vs subscription-gated (anchor/emergency-card) split verified, mobile 390px zero overflow. Regression suite: /app/backend/tests/test_iter14_myanchor.py (idempotent, reusable)
+
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL

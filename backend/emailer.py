@@ -156,6 +156,7 @@ def contact_ping_html(contact_name: str, owner_name: str, kind: str, note: str) 
         "location": ("Location shared", "#9197AA", "shared their location with you"),
         "help": ("I need help", "#C1521E", "asked for help — please reach out"),
         "emergency": ("Emergency", "#C1521E", "triggered an emergency ping — please contact them now"),
+        "know": ("I need someone to know", "#9197AA", "wanted you to know something — no action needed"),
     }
     label, color, action = labels.get(kind, labels["help"])
     subject = f"{owner_name}: {label}"

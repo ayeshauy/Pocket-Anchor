@@ -4,6 +4,8 @@ const STATES = {
   grounded: { color: '#4C5D4B', glow: 'rgba(76,93,75,.35)', name: 'Grounded', label: 'Willow Grove' },
   hopeful:  { color: '#F7B557', glow: 'rgba(247,181,87,.45)', name: 'Hopeful',  label: 'Mimosa' },
   struggling:{ color: '#9197AA', glow: 'rgba(145,151,170,.4)', name: 'Struggling',label: 'Azul' },
+  need_help: { color: '#C1521E', glow: 'rgba(193,82,30,.45)', name: 'I need help', label: 'Signal' },
+  no_talk:   { color: '#B9BDB0', glow: 'rgba(185,189,176,.4)', name: "Don't want to talk", label: 'Quiet' },
 };
 
 export default function MoodPulseOrb({ state = 'grounded', size = 220, onChange, interactive = false }) {

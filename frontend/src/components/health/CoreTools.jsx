@@ -10,12 +10,14 @@ import {
   Siren, MapPin, Languages, LockKeyhole, UserCheck, Timer, Vault, Luggage,
   Moon, ChevronDown, Phone, X, Plus
 } from 'lucide-react';
+import MyAnchorTools from '@/components/health/MyAnchorTools';
 
 const LANGS = ['Spanish', 'French', 'Portuguese', 'Japanese', 'Thai', 'Italian', 'German', 'Arabic', 'Hindi', 'Mandarin'];
 
 export default function CoreTools() {
   return (
     <div className="mt-10 space-y-10" data-testid="core-tools">
+      <MyAnchorTools />
       <ToolGroup title="Essential" sub="Within seconds, when it matters">
         <SOSModule />
         <NearbyHelp />
@@ -120,16 +122,22 @@ const NEARBY_CATS = [
 ];
 function NearbyHelp() {
   const [cat, setCat] = useState(null);
+  const [q, setQ] = useState('');
   const [items, setItems] = useState([]);
   const [busy, setBusy] = useState(false);
-  const pick = async (c) => {
+  const pick = async (c, query = q) => {
     setCat(c); setBusy(true);
-    try { setItems(await api.get(`/nearby?category=${c}`)); }
+    try { setItems(await api.get(`/nearby?category=${c}${query ? '&q=' + encodeURIComponent(query) : ''}`)); }
     catch { setItems([]); }
     finally { setBusy(false); }
   };
   return (
     <Module icon={MapPin} tint="bg-willow/10 text-willow" name="Nearby Help" tagline="Find what you need" testId="module-nearby">
+      <div className="relative mb-3">
+        <Input data-testid="nearby-search" value={q} onChange={e => setQ(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && cat && pick(cat)}
+          placeholder="Search by city or country…" className="rounded-full bg-cloud-subtle border-willow/10 h-10 text-sm" />
+      </div>
       <div className="flex flex-wrap gap-2">
         {NEARBY_CATS.map(([k, label]) => (
           <button key={k} data-testid={`nearby-cat-${k}`} onClick={() => pick(k)}
@@ -145,7 +153,10 @@ function NearbyHelp() {
           {items.map((r) => (
             <div key={r.id} className="rounded-2xl bg-cloud-subtle p-3.5 flex items-center justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-sm font-medium text-willow-dark truncate">{r.name}</p>
+                <p className="text-sm font-medium text-willow-dark truncate">
+                  {r.name}
+                  {r.emergency && <span className="ml-2 text-[9px] uppercase tracking-widest bg-orange-soft text-orange px-1.5 py-0.5 rounded-full">emergency</span>}
+                </p>
                 <p className="text-xs text-willow-light">{[r.city, r.country].filter(Boolean).join(' · ')}</p>
               </div>
               {r.phone && <a href={`tel:${r.phone.split(' ')[0]}`} className="text-orange flex-shrink-0"><Phone className="w-4 h-4" /></a>}
@@ -158,13 +169,16 @@ function NearbyHelp() {
   );
 }
 
-/* ---------------- Translate ---------------- */
+/* ---------------- Translate (quick + medical modes) ---------------- */
 function TranslateModule() {
+  const [mode, setMode] = useState('quick'); // quick | medical | wizard
   const [text, setText] = useState('');
   const [lang, setLang] = useState('Spanish');
   const [out, setOut] = useState(null);
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [wiz, setWiz] = useState({ symptoms: '', started: '', severity: '', allergies: '', medications: '' });
+
   const run = async () => {
     if (!text.trim()) return;
     setBusy(true);
@@ -172,26 +186,66 @@ function TranslateModule() {
     catch { toast.error('Translation failed.'); }
     finally { setBusy(false); }
   };
+
+  const runMedical = async () => {
+    if (!wiz.symptoms.trim()) { toast.error('What hurts? Even one word helps.'); return; }
+    setBusy(true);
+    try {
+      const r = await api.post('/translate/medical', { ...wiz, language: lang });
+      setOut({ translation: r.translation, language: r.language });
+    } catch { toast.error('Translation failed.'); }
+    finally { setBusy(false); }
+  };
+
   return (
     <Module icon={Languages} tint="bg-mimosa-soft text-mimosa-dark" name="Translate" tagline="Communicate when it matters" testId="module-translate">
+      <div className="flex gap-1.5 mb-3">
+        {[['quick', 'Quick'], ['medical', 'Medical'], ['wizard', "I can't explain it"]].map(([k, label]) => (
+          <button key={k} data-testid={`translate-mode-${k}`} onClick={() => setMode(k)}
+            className={`px-3.5 py-1.5 rounded-full text-xs transition ${mode === k ? 'bg-willow text-cloud' : 'bg-cloud-subtle text-willow-dark hover:bg-mimosa-soft'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
       <div className="space-y-3">
-        <Textarea data-testid="translate-input" value={text} onChange={e => setText(e.target.value)}
-          placeholder="I am allergic to penicillin." className="rounded-2xl bg-cloud-subtle border-willow/10 min-h-[70px]" />
+        {mode === 'quick' && (
+          <Textarea data-testid="translate-input" value={text} onChange={e => setText(e.target.value)}
+            placeholder="I am allergic to penicillin." className="rounded-2xl bg-cloud-subtle border-willow/10 min-h-[70px]" />
+        )}
+        {mode === 'medical' && (
+          <div className="space-y-2">
+            {[['symptoms', 'Symptoms (e.g. Chest pain)'], ['started', 'Started (e.g. 3 hours ago)'], ['severity', 'Severity (e.g. 7/10)'], ['allergies', 'Allergies'], ['medications', 'Current medication']].map(([k, ph]) => (
+              <Input key={k} data-testid={`med-${k}`} value={wiz[k]} onChange={e => setWiz({ ...wiz, [k]: e.target.value })}
+                placeholder={ph} className="rounded-full bg-cloud-subtle border-willow/10 h-10 text-sm" />
+            ))}
+          </div>
+        )}
+        {mode === 'wizard' && (
+          <div className="space-y-2">
+            <p className="text-xs text-willow-light">Simple questions. We build the card for you.</p>
+            {[['symptoms', 'What hurts?'], ['symptoms_where', 'Where?'], ['started', 'When did it start?'], ['severity', 'How severe? (1–10)'], ['allergies', 'Any allergies?'], ['medications', 'Any medications?']].map(([k, ph]) => (
+              <Input key={k} data-testid={`wiz-${k}`} value={wiz[k] || ''} onChange={e => setWiz({ ...wiz, [k]: e.target.value })}
+                placeholder={ph} className="rounded-full bg-cloud-subtle border-willow/10 h-10 text-sm" />
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
           <select data-testid="translate-language" value={lang} onChange={e => setLang(e.target.value)}
             className="rounded-full bg-cloud-subtle border border-willow/10 px-4 py-2 text-sm flex-1">
             {LANGS.map(l => <option key={l}>{l}</option>)}
           </select>
-          <Button data-testid="translate-btn" onClick={run} disabled={busy} className="rounded-full bg-orange text-cloud">
-            {busy ? '…' : 'Translate'}
+          <Button data-testid="translate-btn" onClick={mode === 'quick' ? run : runMedical} disabled={busy} className="rounded-full bg-orange text-cloud">
+            {busy ? '…' : mode === 'quick' ? 'Translate' : 'Build card'}
           </Button>
         </div>
         {out && (
           <div className="rounded-2xl bg-mimosa-soft/60 border border-mimosa/40 p-4" data-testid="translate-result">
             <p className="text-[10px] uppercase tracking-widest text-mimosa-dark">{out.language}</p>
-            <p className="font-serif text-xl text-willow-dark mt-1">{out.translation}</p>
+            <p className="font-serif text-xl text-willow-dark mt-1 whitespace-pre-wrap">{out.translation}</p>
             <Button data-testid="translate-show-btn" onClick={() => setShow(true)} size="sm"
-              className="mt-3 rounded-full bg-willow text-cloud w-full">SHOW THIS TO SOMEONE</Button>
+              className="mt-3 rounded-full bg-willow text-cloud w-full">
+              {mode === 'quick' ? 'SHOW THIS TO SOMEONE' : 'SHOW THIS TO A HEALTHCARE PROFESSIONAL'}
+            </Button>
           </div>
         )}
       </div>
@@ -199,8 +253,7 @@ function TranslateModule() {
         <DialogContent className="bg-willow-dark text-cloud rounded-3xl border-none max-w-lg" data-testid="translate-show-card">
           <DialogHeader><DialogTitle className="text-mimosa font-mono text-sm uppercase tracking-widest">{out?.language}</DialogTitle>
             <DialogDescription className="sr-only">Translation to show someone</DialogDescription></DialogHeader>
-          <p className="font-serif text-3xl md:text-4xl leading-snug py-6">{out?.translation}</p>
-          <p className="text-cloud/50 text-sm border-t border-cloud/15 pt-4">Original: {text}</p>
+          <p className="font-serif text-2xl md:text-3xl leading-snug py-6 whitespace-pre-wrap">{out?.translation}</p>
         </DialogContent>
       </Dialog>
     </Module>
@@ -263,12 +316,14 @@ function TrustedContacts() {
   const [contacts, setContacts] = useState([]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [rel, setRel] = useState('');
+  const [prio, setPrio] = useState(2);
   const load = () => api.get('/trusted-contacts').then(setContacts).catch(() => {});
   useEffect(() => { load(); }, []);
   const add = async () => {
     if (!name.trim() || !email.includes('@')) { toast.error('Name and email, please.'); return; }
-    await api.post('/trusted-contacts', { name, email });
-    setName(''); setEmail(''); toast.success('Trusted contact added.'); load();
+    await api.post('/trusted-contacts', { name, email, relationship: rel, priority: prio });
+    setName(''); setEmail(''); setRel(''); setPrio(2); toast.success('Trusted contact added.'); load();
   };
   const ping = async (kind) => {
     try {
@@ -284,15 +339,25 @@ function TrustedContacts() {
           <Input data-testid="tc-email" value={email} onChange={e => setEmail(e.target.value)} placeholder="email" className="rounded-full bg-cloud-subtle border-willow/10 h-10 text-sm" />
           <Button data-testid="tc-add-btn" onClick={add} size="sm" className="rounded-full bg-willow text-cloud h-10 px-3"><Plus className="w-4 h-4" /></Button>
         </div>
+        <div className="flex gap-2">
+          <Input data-testid="tc-relationship" value={rel} onChange={e => setRel(e.target.value)} placeholder="Relationship (sister, friend…)" className="rounded-full bg-cloud-subtle border-willow/10 h-9 text-xs flex-1" />
+          <select data-testid="tc-priority" value={prio} onChange={e => setPrio(Number(e.target.value))} className="rounded-full bg-cloud-subtle border border-willow/10 px-3 text-xs">
+            <option value={1}>Priority 1</option><option value={2}>Priority 2</option><option value={3}>Priority 3</option>
+          </select>
+        </div>
         {contacts.map(c => (
           <div key={c.id} className="flex items-center justify-between rounded-2xl bg-cloud-subtle px-4 py-2.5">
-            <div><p className="text-sm font-medium text-willow-dark">{c.name}</p><p className="text-xs text-willow-light">{c.email}</p></div>
+            <div>
+              <p className="text-sm font-medium text-willow-dark">{c.name} {c.priority === 1 && <span className="text-[9px] uppercase tracking-widest text-orange ml-1">first</span>}</p>
+              <p className="text-xs text-willow-light">{[c.relationship, c.email].filter(Boolean).join(' · ')}</p>
+            </div>
             <button onClick={async () => { await api.del(`/trusted-contacts/${c.id}`); load(); }} className="text-willow-light hover:text-orange"><X className="w-4 h-4" /></button>
           </div>
         ))}
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <Button data-testid="ping-safe" onClick={() => ping('safe')} variant="outline" className="rounded-full border-willow/20 text-willow">I'm safe</Button>
-          <Button data-testid="ping-help" onClick={() => ping('help')} className="rounded-full bg-orange text-cloud">I need help</Button>
+        <div className="grid grid-cols-3 gap-2 pt-1">
+          <Button data-testid="ping-safe" onClick={() => ping('safe')} variant="outline" className="rounded-full border-willow/20 text-willow text-xs">I'm safe</Button>
+          <Button data-testid="ping-know" onClick={() => ping('know')} variant="outline" className="rounded-full border-willow/20 text-azul-dark text-xs">Need someone to know</Button>
+          <Button data-testid="ping-help" onClick={() => ping('help')} className="rounded-full bg-orange text-cloud text-xs">I need help</Button>
         </div>
       </div>
     </Module>
@@ -418,6 +483,7 @@ function TripPack() {
               <span className="text-sm text-willow-dark text-right">{v}</span>
             </div>
           ))}
+          <TravelSafety country={pack.country} />
           <button onClick={() => setPack({})} className="text-xs text-willow-light underline mt-1">change trip</button>
         </div>
       ) : (
@@ -428,5 +494,40 @@ function TripPack() {
         </div>
       )}
     </Module>
+  );
+}
+
+/* ---------------- Travel Safety (extends Trip Pack) ---------------- */
+const PHRASES = {
+  japan: [['Help!', 'Tasukete!'], ['I need a doctor', 'Isha wo yonde kudasai'], ['Hospital', 'Byouin'], ['Thank you', 'Arigatou gozaimasu']],
+  portugal: [['Help!', 'Socorro!'], ['I need a doctor', 'Preciso de um médico'], ['Hospital', 'Hospital'], ['Thank you', 'Obrigado/a']],
+  thailand: [['Help!', 'Chuay duay!'], ['I need a doctor', 'Chan tong kan mor'], ['Hospital', 'Rong phayabaan'], ['Thank you', 'Khop khun kha/khrap']],
+  mexico: [['Help!', '¡Ayuda!'], ['I need a doctor', 'Necesito un médico'], ['Hospital', 'Hospital'], ['Thank you', 'Gracias']],
+  france: [['Help!', 'Au secours !'], ['I need a doctor', "J'ai besoin d'un médecin"], ['Hospital', 'Hôpital'], ['Thank you', 'Merci']],
+  singapore: [['Help!', 'Help!'], ['I need a doctor', 'I need a doctor'], ['Hospital', 'Hospital'], ['Thank you', 'Thank you']],
+};
+function TravelSafety({ country }) {
+  const [hospitals, setHospitals] = useState([]);
+  useEffect(() => {
+    if (!country) return;
+    api.get(`/nearby?category=hospital&q=${encodeURIComponent(country)}`).then(setHospitals).catch(() => {});
+  }, [country]);
+  const phrases = PHRASES[(country || '').trim().toLowerCase()];
+  return (
+    <div className="mt-3 rounded-2xl border border-willow/10 p-4" data-testid="travel-safety">
+      <p className="text-[11px] uppercase tracking-widest text-willow-light mb-2">Travel Safety · {country}</p>
+      <p className="text-xs text-willow-dark font-medium">Hospitals on file</p>
+      {hospitals.length ? hospitals.map(h => (
+        <p key={h.id} className="text-xs text-[#535E56] mt-1">{h.name} · {h.city} · <a className="text-orange" href={`tel:${h.phone}`}>{h.phone}</a></p>
+      )) : <p className="text-xs text-willow-light mt-1">None on file for this country yet — the embassy line above is your fastest route.</p>}
+      {phrases && (
+        <>
+          <p className="text-xs text-willow-dark font-medium mt-3">Useful local phrases</p>
+          {phrases.map(([en, local]) => (
+            <p key={en} className="text-xs text-[#535E56] mt-1">{en} → <span className="font-medium text-willow-dark">{local}</span></p>
+          ))}
+        </>
+      )}
+    </div>
   );
 }

@@ -434,7 +434,10 @@ export default function Landing({ onSignIn }) {
       <footer className="border-t border-willow/10 py-10">
         <div className="max-w-7xl mx-auto px-5 lg:px-10 flex flex-wrap gap-4 items-center justify-between text-xs text-willow-light">
           <p>© Pocket Anchor · A quiet place.</p>
-          <p>If you are in immediate danger, call your local emergency line. In the US: 911 · Crisis: 988.</p>
+          <div className="flex items-center gap-4">
+            <Link to="/privacy" className="hover:text-orange transition" data-testid="footer-privacy-link">Privacy</Link>
+            <p>If you are in immediate danger, call your local emergency line. In the US: 911 · Crisis: 988.</p>
+          </div>
         </div>
       </footer>
     </div>

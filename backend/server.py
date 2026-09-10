@@ -344,6 +344,16 @@ async def add_mood(payload: MoodPulseIn, request: Request):
            "state": payload.state, "intensity": payload.intensity,
            "note": payload.note or "", "created_at": now_iso()}
     await db.mood_pulses.insert_one(doc)
+    if payload.state == "need_help":
+        # Silent emotional check-in: surface to guardian circle feed (quietly, no alarm)
+        try:
+            await db.notifications.insert_one({
+                "id": str(uuid.uuid4()), "user_id": user["user_id"], "kind": "need_help",
+                "guardian_name": "The sanctuary", "note": "A red pulse was logged — a gentle check-in would land well.",
+                "created_at": now_iso(),
+            })
+        except Exception:
+            pass
     doc.pop("_id", None)
     return doc
 
@@ -733,15 +743,17 @@ async def clinics(q: Optional[str] = None, only_24_7: bool = False):
 
 # ---------------- Medical Vault ----------------
 class MedRecordIn(BaseModel):
-    kind: str  # medication | allergy | condition | visit
+    kind: str  # medication | allergy | condition | visit | record | prescription | lab | imaging | vaccination | doctor_doc | discharge | insurance_doc
     label: str
     detail: str = ""
+    media_path: str = ""
 
 @api_router.post("/medical")
 async def add_med(payload: MedRecordIn, request: Request):
     user = await require_subscribed_user(request)
     doc = {"id": str(uuid.uuid4()), "user_id": user["user_id"],
            "kind": payload.kind, "label": payload.label, "detail": payload.detail,
+           "media_path": payload.media_path or "",
            "created_at": now_iso()}
     await db.medical.insert_one(doc)
     doc.pop("_id", None)
@@ -1343,12 +1355,18 @@ NEARBY_MAP = {
 }
 
 @api_router.get("/nearby")
-async def nearby_help(category: str, request: Request):
+async def nearby_help(category: str, request: Request, q: Optional[str] = None):
     await require_subscribed_user(request)
     fn = NEARBY_MAP.get(category)
     if not fn:
         raise HTTPException(400, "Unknown category")
-    return fn()
+    items = fn()
+    for it in items:
+        it.setdefault("emergency", it.get("category") in ("Hospital", "Police") or bool(it.get("twenty_four_seven")))
+    if q:
+        ql = q.strip().lower()
+        items = [i for i in items if ql in (i.get("city") or "").lower() or ql in (i.get("country") or "").lower() or ql in (i.get("name") or "").lower()]
+    return items
 
 class HealthCardIn(BaseModel):
     name: str = ""
@@ -1376,6 +1394,9 @@ class TrustedContactIn(BaseModel):
     name: str
     email: str
     phone: str = ""
+    relationship: str = ""
+    priority: int = 2  # 1 = first to contact
+    notes: str = ""
 
 @api_router.post("/trusted-contacts")
 async def add_trusted(payload: TrustedContactIn, request: Request):
@@ -1383,7 +1404,9 @@ async def add_trusted(payload: TrustedContactIn, request: Request):
     if "@" not in payload.email:
         raise HTTPException(400, "Valid email required")
     doc = {"id": str(uuid.uuid4()), "user_id": user["user_id"], "name": payload.name,
-           "email": payload.email.lower(), "phone": payload.phone, "created_at": now_iso()}
+           "email": payload.email.lower(), "phone": payload.phone,
+           "relationship": payload.relationship, "priority": payload.priority, "notes": payload.notes,
+           "created_at": now_iso()}
     await db.trusted_contacts.insert_one(doc)
     doc.pop("_id", None)
     return doc
@@ -1406,7 +1429,7 @@ class PingIn(BaseModel):
 @api_router.post("/trusted-contacts/ping")
 async def ping_trusted(payload: PingIn, request: Request):
     user = await require_subscribed_user(request)
-    if payload.kind not in ("safe", "location", "help", "emergency"):
+    if payload.kind not in ("safe", "location", "help", "emergency", "know"):
         raise HTTPException(400, "Invalid kind")
     contacts = await db.trusted_contacts.find({"user_id": user["user_id"]}, {"_id": 0}).to_list(20)
     if not contacts:
@@ -1529,6 +1552,118 @@ async def get_trip_pack(request: Request):
     contacts = await db.trusted_contacts.find({"user_id": user["user_id"]}, {"_id": 0}).to_list(20)
     return {**pack, "emergency_number": info["emergency"], "embassy": info["embassy"],
             "health_card": card, "trusted_contacts": contacts}
+
+# ---------------- My Anchor (personal safety hub) ----------------
+class MyAnchorIn(BaseModel):
+    instructions: str = ""
+    preferred_contact: str = ""
+    vaccinations: str = ""
+    doctors: str = ""
+    medical_history: str = ""
+
+@api_router.put("/anchor")
+async def put_anchor(payload: MyAnchorIn, request: Request):
+    user = await require_subscribed_user(request)
+    doc = payload.dict()
+    doc.update({"user_id": user["user_id"], "updated_at": now_iso()})
+    await db.my_anchor.update_one({"user_id": user["user_id"]}, {"$set": doc}, upsert=True)
+    return {"ok": True}
+
+@api_router.get("/anchor")
+async def get_anchor(request: Request):
+    user = await require_subscribed_user(request)
+    uid = user["user_id"]
+    anchor = await db.my_anchor.find_one({"user_id": uid}, {"_id": 0}) or {}
+    card = await db.health_cards.find_one({"user_id": uid}, {"_id": 0}) or {}
+    trip = await db.trip_packs.find_one({"user_id": uid}, {"_id": 0}) or {}
+    contacts = await db.trusted_contacts.find({"user_id": uid}, {"_id": 0}).to_list(20)
+    return {"anchor": anchor, "health_card": card, "trip_pack": trip, "trusted_contacts": contacts}
+
+@api_router.get("/anchor/readiness")
+async def anchor_readiness(request: Request):
+    user = await require_subscribed_user(request)
+    uid = user["user_id"]
+    card = await db.health_cards.find_one({"user_id": uid}, {"_id": 0})
+    contacts = await db.trusted_contacts.count_documents({"user_id": uid})
+    trip = await db.trip_packs.find_one({"user_id": uid}, {"_id": 0})
+    ecard = await db.emergency_cards.find_one({"user_id": uid}, {"_id": 0})
+    plan = await db.safety_plans.find_one({"user_id": uid}, {"_id": 0})
+    checks = {
+        "health_card": bool(card and any(v for k, v in card.items() if k not in ("user_id", "updated_at"))),
+        "trusted_contacts": contacts,
+        "trip_pack": bool(trip and trip.get("country")),
+        "emergency_card": bool(ecard),
+        "safety_plan": bool(plan and any(v for k, v in plan.items() if k not in ("user_id", "updated_at"))),
+    }
+    ready = checks["health_card"] and contacts > 0
+    return {"checks": checks, "anchored": bool(ready)}
+
+class EmergencyCardIn(BaseModel):
+    preferred_language: str = ""
+    instructions: str = ""
+    show: dict = {}
+
+@api_router.put("/emergency-card")
+async def put_emergency_card(payload: EmergencyCardIn, request: Request):
+    user = await require_subscribed_user(request)
+    doc = payload.dict()
+    doc.update({"user_id": user["user_id"], "updated_at": now_iso()})
+    await db.emergency_cards.update_one({"user_id": user["user_id"]}, {"$set": doc}, upsert=True)
+    return {"ok": True}
+
+@api_router.get("/emergency-card")
+async def get_emergency_card(request: Request):
+    user = await require_subscribed_user(request)
+    card = await db.emergency_cards.find_one({"user_id": user["user_id"]}, {"_id": 0}) or {}
+    health = await db.health_cards.find_one({"user_id": user["user_id"]}, {"_id": 0}) or {}
+    contacts = await db.trusted_contacts.find({"user_id": user["user_id"]}, {"_id": 0}).sort("priority", 1).to_list(5)
+    return {"card": card, "health": health, "contacts": contacts}
+
+class SafetyPlanIn(BaseModel):
+    warning_signs: str = ""
+    things_that_help: str = ""
+    people: str = ""
+    places: str = ""
+    avoid: str = ""
+    emergency_instructions: str = ""
+
+@api_router.put("/safety-plan")
+async def put_safety_plan(payload: SafetyPlanIn, request: Request):
+    user = await require_user(request)  # safety tool: auth-only, not paywalled
+    doc = payload.dict()
+    doc.update({"user_id": user["user_id"], "updated_at": now_iso()})
+    await db.safety_plans.update_one({"user_id": user["user_id"]}, {"$set": doc}, upsert=True)
+    return {"ok": True}
+
+@api_router.get("/safety-plan")
+async def get_safety_plan(request: Request):
+    user = await require_user(request)
+    return await db.safety_plans.find_one({"user_id": user["user_id"]}, {"_id": 0}) or {}
+
+class MedicalTranslateIn(BaseModel):
+    symptoms: str
+    started: str = ""
+    severity: str = ""
+    allergies: str = ""
+    medications: str = ""
+    language: str = "Spanish"
+
+@api_router.post("/translate/medical")
+async def translate_medical(payload: MedicalTranslateIn, request: Request):
+    await require_subscribed_user(request)
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    chat = LlmChat(
+        api_key=EMERGENT_KEY, session_id=f"medtranslate-{uuid.uuid4().hex[:8]}",
+        system_message=("You are a medical communication assistant for travelers. Produce a calm, precise, "
+                        "doctor-ready summary in the requested language. Structure it as short labeled lines "
+                        "(Symptoms / Started / Severity / Allergies / Current medication). Translate faithfully; "
+                        "add no medical advice, no diagnosis, no interpretation. Use locally standard medical terms. "
+                        "Output ONLY the translated card text.")).with_model("anthropic", "claude-sonnet-4-6")
+    src = (f"Symptoms: {payload.symptoms}\nStarted: {payload.started or '—'}\nSeverity: {payload.severity or '—'}\n"
+           f"Allergies: {payload.allergies or 'None stated'}\nCurrent medication: {payload.medications or 'None stated'}")
+    resp = await chat.send_message(UserMessage(text=f"Target language: {payload.language}\n\n{src}"))
+    translated = resp if isinstance(resp, str) else getattr(resp, "text", str(resp))
+    return {"translation": translated.strip(), "language": payload.language, "source": src}
 
 # ---------------- Health check ----------------
 @api_router.get("/")
