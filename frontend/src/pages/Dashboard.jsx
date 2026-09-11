@@ -9,8 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import MoodPulseOrb, { MOOD_STATES } from '@/components/sanctuary/MoodPulseOrb';
 import GuardianPanel from '@/components/sanctuary/GuardianPanel';
 import MemoryVault from '@/components/sanctuary/MemoryVault';
+import { REASONS, reasonTitle } from '@/constants/reasons';
 import { toast } from 'sonner';
-import { Heart, Star, AlertTriangle, Copy, Wind, BookHeart, Music2, MessageCircleHeart, X, Send } from 'lucide-react';
+import { Heart, Star, AlertTriangle, Copy, Wind, BookHeart, Music2, MessageCircleHeart, X, Send, Flag } from 'lucide-react';
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -108,6 +109,8 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+
+          <AnchorSettings />
 
           {/* Tabs: Wall / Journal / Breath */}
           <div className="card-organic p-6">
@@ -208,34 +211,154 @@ function StatBlock({ label, value }) {
 }
 
 function WallOfHope({ items, onRefresh }) {
+  const [reporting, setReporting] = useState(null);
   const felt = async (id) => { await api.post(`/hope/${id}/felt`, {}); onRefresh(); };
   const fav = async (id) => { await api.post(`/hope/${id}/favorite`, {}); onRefresh(); };
+  const approve = async (id) => {
+    try { await api.post(`/hope/${id}/approve`, {}); toast.success('Welcomed in.'); onRefresh(); }
+    catch { toast.error('Could not approve.'); }
+  };
+  const report = async (id, category) => {
+    try {
+      await api.post(`/hope/${id}/report`, { category });
+      setReporting(null);
+      toast.success('Reported and pulled back to private.');
+      onRefresh();
+    } catch { toast.error('Could not send the report.'); }
+  };
+  const setVis = async (id, visibility) => {
+    try {
+      await api.post(`/hope/${id}/visibility`, { visibility });
+      toast.success(visibility === 'forever' ? 'Kept forever on your Anchor.' : visibility === 'shared' ? 'Shared on your Anchor.' : visibility === 'public' ? 'Now public on your Anchor.' : 'Back to private.');
+      onRefresh();
+    } catch (e) {
+      toast.error("The supporter didn't allow this level of sharing.");
+    }
+  };
   if (!items.length) {
     return <p className="text-sm text-willow-light text-center py-8" data-testid="wall-empty">Your Anchor Link has yet to gather reasons. Share it with someone gentle.</p>;
   }
+  const groups = {};
+  items.forEach(it => { const k = it.reason || 'stay'; (groups[k] = groups[k] || []).push(it); });
+  const ordered = REASONS.filter(r => groups[r.k]);
   return (
-    <div className="columns-1 md:columns-2 gap-4" data-testid="wall-of-hope-grid">
-      {items.map((it) => (
-        <div key={it.id} className="mb-4 break-inside-avoid rounded-2xl p-5 bg-gradient-to-br from-white to-mimosa-soft/40 border border-willow/10">
-          <p className="text-xs uppercase tracking-widest text-willow-light mb-2">{it.supporter_name}</p>
-          {it.text && <p className="text-[15px] text-willow-dark leading-relaxed font-serif">"{it.text}"</p>}
-          {it.song_url && <a href={it.song_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-orange hover:underline"><Music2 className="w-4 h-4" /> Listen</a>}
-          {it.media_path && it.media_path.match(/\.(png|jpe?g|webp|gif)$/i) && (
-            <img src={fileUrl(it.media_path)} alt="" className="mt-3 rounded-xl w-full" />
-          )}
-          {it.media_path && it.media_path.match(/\.(mp3|wav|ogg|m4a|webm)$/i) && (
-            <audio controls src={fileUrl(it.media_path)} className="mt-3 w-full" />
-          )}
-          <div className="flex items-center gap-3 mt-4">
-            <button data-testid={`felt-btn-${it.id}`} onClick={() => felt(it.id)} className="flex items-center gap-1.5 text-xs text-willow hover:text-orange transition">
-              <Heart className="w-4 h-4" /> Felt this · {it.felt_count || 0}
-            </button>
-            <button data-testid={`fav-btn-${it.id}`} onClick={() => fav(it.id)} className={`flex items-center gap-1.5 text-xs transition ${it.is_favorite ? 'text-mimosa-dark' : 'text-willow-light hover:text-mimosa-dark'}`}>
-              <Star className="w-4 h-4" fill={it.is_favorite ? 'currentColor' : 'none'} /> Favorite
-            </button>
+    <div data-testid="wall-of-hope-grid" className="space-y-6">
+      {ordered.map(r => (
+        <div key={r.k} data-testid={`wall-group-${r.k}`}>
+          <p className="text-xs uppercase tracking-[0.22em] text-willow-light mb-3">{r.title} · {groups[r.k].length}</p>
+          <div className="columns-1 md:columns-2 gap-4">
+            {groups[r.k].map((it) => {
+              const level = it.consent_level || (it.consent_shared ? 'circle' : 'recipient');
+              return (
+              <div key={it.id} className="mb-4 break-inside-avoid rounded-2xl p-5 bg-gradient-to-br from-white to-mimosa-soft/40 border border-willow/10">
+                <p className="text-xs uppercase tracking-widest text-willow-light mb-2">{it.supporter_name}</p>
+                {it.text && <p className="text-[15px] text-willow-dark leading-relaxed font-serif">"{it.text}"</p>}
+                {it.song_url && <a href={it.song_url} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-2 text-sm text-orange hover:underline"><Music2 className="w-4 h-4" /> Listen</a>}
+                {it.media_path && it.media_path.match(/\.(png|jpe?g|webp|gif)$/i) && (
+                  <img src={fileUrl(it.media_path)} alt="" className="mt-3 rounded-xl w-full" />
+                )}
+                {it.media_path && it.media_path.match(/\.(mp3|wav|ogg|m4a|webm)$/i) && (
+                  <audio controls src={fileUrl(it.media_path)} className="mt-3 w-full" />
+                )}
+                {it.status === 'pending' && (
+                  <div className="mt-3 rounded-xl bg-mimosa-soft/70 px-3 py-2 flex items-center justify-between gap-2" data-testid={`pending-${it.id}`}>
+                    <span className="text-[11px] text-willow-dark">Waiting for your approval</span>
+                    <button data-testid={`approve-${it.id}`} onClick={() => approve(it.id)} className="text-[11px] px-3 py-1 rounded-full bg-willow text-cloud">Approve</button>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 mt-4 flex-wrap">
+                  <button data-testid={`felt-btn-${it.id}`} onClick={() => felt(it.id)} className="flex items-center gap-1.5 text-xs text-willow hover:text-orange transition">
+                    <Heart className="w-4 h-4" /> Felt this · {it.felt_count || 0}
+                  </button>
+                  <button data-testid={`fav-btn-${it.id}`} onClick={() => fav(it.id)} className={`flex items-center gap-1.5 text-xs transition ${it.is_favorite ? 'text-mimosa-dark' : 'text-willow-light hover:text-mimosa-dark'}`}>
+                    <Star className="w-4 h-4" fill={it.is_favorite ? 'currentColor' : 'none'} /> Favorite
+                  </button>
+                  {reporting === it.id ? (
+                    <span className="flex flex-wrap items-center gap-1" data-testid={`wall-report-options-${it.id}`}>
+                      {[['harassment', 'Harassment'], ['threat', 'Threat'], ['abuse', 'Abuse'], ['other', 'Other']].map(([k, label]) => (
+                        <button key={k} data-testid={`wall-report-${k}-${it.id}`} onClick={() => report(it.id, k)}
+                          className="text-[10px] px-2 py-1 rounded-full bg-cloud-subtle text-willow-dark hover:bg-orange-soft">{label}</button>
+                      ))}
+                      <button onClick={() => setReporting(null)} className="text-[10px] text-willow-light underline">cancel</button>
+                    </span>
+                  ) : (
+                    <button data-testid={`wall-report-btn-${it.id}`} onClick={() => setReporting(it.id)}
+                      className="ml-auto text-willow-light/50 hover:text-orange transition" title="Report quietly — pulls it back to private">
+                      <Flag className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+                {/* Visibility: recipient chooses private / anchor / forever / public (supporter consent caps the ceiling) */}
+                <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-willow/10 flex-wrap" data-testid={`visibility-${it.id}`}>
+                  {[['private', 'Private'], ['shared', 'Your Anchor'], ['forever', 'Keep forever'], ['public', 'Public']].map(([v, label]) => {
+                    const active = (it.visibility || 'private') === v;
+                    const blocked = v !== 'private' && (v === 'public' ? level !== 'public' : level === 'recipient');
+                    return (
+                      <button
+                        key={v}
+                        data-testid={`vis-${v}-${it.id}`}
+                        onClick={() => !blocked && setVis(it.id, v)}
+                        title={blocked ? "The supporter didn't allow this level of sharing" : label}
+                        className={`text-[11px] px-3 py-1.5 rounded-full transition ${
+                          active ? (v === 'forever' ? 'bg-orange text-cloud' : 'bg-willow text-cloud')
+                            : blocked ? 'bg-cloud-subtle text-willow-light/50 cursor-not-allowed'
+                            : 'bg-cloud-subtle text-willow-dark hover:bg-mimosa-soft'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              );
+            })}
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function AnchorSettings() {
+  const [s, setS] = useState(null);
+  useEffect(() => { (async () => { try { setS(await api.get('/anchor-settings')); } catch {} })(); }, []);
+  if (!s) return null;
+  const save = async (patch) => {
+    const next = { ...s, ...patch };
+    setS(next);
+    try { await api.put('/anchor-settings', next); toast.success('Anchor settings saved.'); }
+    catch { toast.error('Could not save settings.'); }
+  };
+  return (
+    <div className="card-organic p-6" data-testid="anchor-settings-card">
+      <p className="text-xs uppercase tracking-[0.28em] text-willow-light">Who can leave something for you?</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {[['anyone', 'Anyone with my link'], ['approval', 'People I approve first'], ['off', 'Paused — no new messages']].map(([v, label]) => (
+          <button
+            key={v}
+            data-testid={`anchor-who-${v}`}
+            onClick={() => save({ who: v })}
+            className={`px-4 py-2 rounded-full text-xs transition ${s.who === v ? 'bg-willow text-cloud' : 'bg-cloud-subtle text-willow-dark hover:bg-mimosa-soft'}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="mt-4 space-y-2.5">
+        <label className="flex items-center gap-2.5 text-sm text-willow-dark cursor-pointer">
+          <input type="checkbox" data-testid="require-approval-toggle" checked={!!s.require_approval} onChange={e => save({ require_approval: e.target.checked })} />
+          Require my approval before messages appear
+        </label>
+        <label className="flex items-center gap-2.5 text-sm text-willow-dark cursor-pointer">
+          <input type="checkbox" data-testid="allow-anonymous-toggle" checked={!!s.allow_anonymous} onChange={e => save({ allow_anonymous: e.target.checked })} />
+          Allow anonymous messages
+        </label>
+      </div>
+      <p className="mt-4 text-[11px] text-willow-light leading-relaxed">
+        Every message is also screened by Anchor's safety layer before it reaches you — pressuring or harmful
+        content is softened with the sender or blocked, so you're never the only gatekeeper.
+      </p>
     </div>
   );
 }

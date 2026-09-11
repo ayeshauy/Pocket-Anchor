@@ -38,9 +38,10 @@ function Resources() {
   return (
     <div className="mt-6">
       <div className="flex flex-wrap gap-2 mb-5">
-        {['', 'United States', 'United Kingdom', 'Australia', 'India', 'France'].map(c => (
+        {['', 'United States', 'United Kingdom', 'Australia', 'India', 'France', 'Philippines'].map(c => (
           <button
             key={c || 'all'}
+            data-testid={`country-filter-${c ? c.toLowerCase().replace(/ /g, '-') : 'all'}`}
             onClick={() => setCountry(c)}
             className={`px-4 py-1.5 rounded-full text-xs ${country === c ? 'bg-azul-dark text-cloud' : 'bg-cloud-subtle text-willow-dark hover:bg-mimosa-soft'}`}
           >

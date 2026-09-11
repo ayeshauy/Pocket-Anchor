@@ -18,6 +18,7 @@ async function req(path, opts = {}) {
 export const api = {
   get: (p) => req(p),
   post: (p, body) => req(p, { method: 'POST', body: JSON.stringify(body || {}) }),
+  put: (p, body) => req(p, { method: 'PUT', body: JSON.stringify(body || {}) }),
   patch: (p, body) => req(p, { method: 'PATCH', body: JSON.stringify(body || {}) }),
   del: (p) => req(p, { method: 'DELETE' }),
   upload: async (p, file) => {

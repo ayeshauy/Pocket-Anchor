@@ -135,6 +135,26 @@ Pocket Anchor is a warm, non-clinical digital sanctuary structured into three pi
 - Backend: /api/anchor (+readiness), /api/emergency-card, /api/safety-plan, /api/translate/medical — all verified via curl; existing features untouched (verified no route/UI removals)
 - **testing_agent iteration_4: 22/22 backend pytest + 100% frontend** — all regression testids intact on /dashboard, 5-state orb verified, My Anchor hub end-to-end, medical translation real Claude output, auth-only (safety-plan) vs subscription-gated (anchor/emergency-card) split verified, mobile 390px zero overflow. Regression suite: /app/backend/tests/test_iter14_myanchor.py (idempotent, reusable)
 
+## Implemented (Sep 2026, iter 15) — Forever Anchor / Shared Memories
+- **Three-layer Anchor**: Reasons (text encouragements) · Memories (photos/songs/voice notes) · Forever (recipient-preserved). Public page now has "Leave something" / "Their Anchor" views with category counts ("Reasons to Smile · 12")
+- **Global reason taxonomy** (`constants/reasons.js`): 10 categories — stay, keep going, hopeful, smile, happy, present, remember, feel loved, hope, look forward. Supporter picks a category; headline is dynamic ("Give Maya a reason to smile."). "A reason to stay" remains one option, never the default framing. OG card/title updated to "Give {name} a reason."
+- **Recipient-controlled visibility**: every contribution is Private by default; recipient sets Private / Share on my Anchor / Keep forever per item (`POST /api/hope/:id/visibility`). **Supporter consent gate**: supporters check "may share on their Anchor" at submission; sharing/forever without consent → 403 server-side, disabled buttons with explanation in UI
+- **Wall of Hope** now groups by reason category with per-item visibility tri-state; existing felt/favorite preserved
+- **Migration**: existing hope_reasons defaulted to reason=stay, visibility=private, consent_shared=false
+- Landing aligned: Pillar I Anchor Link line ("a permanent link — reasons, memories & forever"), FAQ rewritten (control answer + new "What are Reasons, Memories, and Forever" entry)
+- Verified via curl: category+consent submission, shared/forever visibility, consent-blocked 403, public collection privacy guards (only consented shared/forever items exposed)
+
+## Implemented (Sep 2026, iter 16) — Safety & Wellbeing Moderation Layer (full stack)
+- **5-tier contextual classifier** on every Anchor submission (GREEN/BLUE/YELLOW/ORANGE/RED via Claude Sonnet 4.6, fails open): GREEN+BLUE deliver (supportive sadness/grief/crisis-context allowed — sadness ≠ harm); YELLOW → 422 hold with AI rewrite suggestion; ORANGE/RED → 422 blocked + abuse strikes. `sender_risk` flag surfaces sender-support resources in UI
+- **Sender UX** (`AnchorPublic.jsx`): hold panel (use suggestion / keep editing / request review), blocked panel (write new / appeal → `POST /api/moderate/appeal` human-review queue), crisis disclaimer footer ("Anchor is not a crisis or emergency service")
+- **Two-layer consent**: sender picks who can see (only recipient / +people they choose / may share publicly → `consent_level`); recipient sets per-item Private / Your Anchor / Keep forever / Public — server-enforced consent ceiling (CONSENT_ORDER, 403 on breach). Public sharing never exposes sender metadata
+- **Kindness-first wording**: headline "Leave {name} a little kindness." (was "reason to stay"); 8 safe categories in `constants/reasons.js`; legacy keys mapped so old contributions keep their category
+- **Recipient controls** (`Dashboard.jsx`): anchor-settings-card (who: anyone/approval/off, require-approval, allow-anonymous via `GET/PUT /api/anchor-settings`), pending-approval banner + approve flow (`POST /api/hope/{id}/approve`), discreet report per item (`POST /api/hope/{id}/report` → instant private + reported=true, fingerprint rate-limited 10/hr)
+- **Privacy-preserving abuse guards**: hashed IP+UA fingerprint only (never raw IP), 6 submissions/10min/slug, 24h exact-duplicate block, strike system → 24h restriction; moderation_events log minimum-necessary metadata (no content/emails/IPs)
+- **Philippines resources** (r8-r10): NCMH Crisis Hotline 1553, Hopeline PH, DSWD VAW 1343 + Philippines filter pill on /safety
+- **Landing FAQ**: 12 entries — new moderation-layer FAQ (five levels, rewrite, human review, recipient control, crisis disclaimer), two-layer consent answer, "to stay" phrasing removed
+- **testing_agent iteration_8: 11/11 backend pytest + 13/13 frontend acceptance PASS** (hold→suggestion→resubmit E2E, block+appeal E2E, approval E2E, 4-state visibility consent ceiling, mobile 390px zero overflow). Regression suite: /app/backend/tests/test_iter8_moderation.py
+
 ## Deployment readiness (Jun 2026)
 - deployment_agent health check: **PASS**, zero findings
 - **Deploy queued** (job 2b0cac57-38a9-4233-9ffa-315f10369cb7) — awaiting live URL

@@ -116,11 +116,14 @@ class JournalIn(BaseModel):
     is_private: bool = True
 
 class HopeReasonIn(BaseModel):
-    supporter_name: Optional[str] = "A kindred soul"
+    supporter_name: Optional[str] = ""  # empty = anonymous
     kind: str = "text"  # text | photo | song | voice
     text: Optional[str] = ""
     media_path: Optional[str] = ""
     song_url: Optional[str] = ""
+    reason: str = "smile"
+    consent_shared: bool = False  # legacy compat
+    consent_level: str = "recipient"  # recipient | circle | public
 
 class ChatIn(BaseModel):
     message: str
@@ -280,25 +283,278 @@ async def sanctuary_public(slug: str):
     if not u:
         raise HTTPException(404, "Sanctuary not found")
     reasons_count = await db.hope_reasons.count_documents({"user_id": u["user_id"]})
-    return {"name": u.get("sanctuary_name") or u["name"], "slug": slug, "reasons_count": reasons_count, "user_id": u["user_id"]}
+    # Public collection: only approved, recipient-shared items within the sender's consent
+    shared = await db.hope_reasons.find(
+        {"user_id": u["user_id"], "visibility": {"$in": ["shared", "public", "forever"]},
+         "consent_shared": True, "status": {"$ne": "pending"}},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(300)
+    counts = {}
+    for it in shared:
+        r = it.get("reason") or "stay"
+        counts[r] = counts.get(r, 0) + 1
+    return {
+        "name": u.get("sanctuary_name") or u["name"], "slug": slug,
+        "reasons_count": reasons_count, "user_id": u["user_id"],
+        "collection": shared, "category_counts": counts,
+    }
+
+# ---------------- Safety & Wellbeing Moderation Layer ----------------
+MOD_SYSTEM = (
+    "You are the safety layer of Anchor, a quiet sanctuary where people leave messages of love, support, "
+    "memories and encouragement. Classify a submission into exactly one level:\n"
+    "GREEN = safe/supportive/neutral (ordinary sadness, grief, nostalgia, and mentions of depression, death or "
+    "loss in a caring context are GREEN)\n"
+    "BLUE = sensitive but clearly supportive — discusses suicide, self-harm, trauma or grief while offering care "
+    "('I'm worried about you. Please reach out to someone you trust. You matter.')\n"
+    "YELLOW = potentially harmful — guilt, blame, emotional pressure or manipulation, pressure to respond, "
+    "pressure to stay alive specifically for the sender, frightening intensity, hopelessness reinforcement\n"
+    "ORANGE = harmful — encourages suicide or self-harm, romanticizes death harmfully, calls someone a burden, "
+    "mocks depression, shames help-seeking, reinforces hopelessness intentionally\n"
+    "RED = threat/abuse — credible threats, violence, stalking, blackmail, extortion, doxxing, coercive control, "
+    "targeted harassment, sexual exploitation, instructions to harm\n"
+    "The mere presence of words like sad, death, suicide, grief is NEVER sufficient for YELLOW or above — judge "
+    "intent and impact on the recipient. Set sender_risk=true only if the SENDER appears to be in immediate "
+    "personal crisis. Return ONLY JSON: "
+    "{\"level\":\"GREEN\",\"confidence\":0-100,\"category\":\"short_label\",\"sender_risk\":false}"
+)
+MOD_REWRITE_SYSTEM = (
+    "You rewrite messages for Anchor so they keep the sender's genuine emotion while removing guilt, pressure, "
+    "coercion or harmful content. Never artificially cheerful, never invalidating grief. 1-4 sentences, plain "
+    "and warm. Return ONLY the rewritten message."
+)
+
+async def moderate_text(text: str) -> dict:
+    default = {"level": "GREEN", "confidence": 50, "category": "unscanned", "sender_risk": False}
+    if not text or not text.strip():
+        return default
+    try:
+        result = await deja_ai_json(MOD_SYSTEM, text, f"moderate-{uuid.uuid4().hex[:8]}")
+        if result.get("level") not in ("GREEN", "BLUE", "YELLOW", "ORANGE", "RED"):
+            return default
+        return result
+    except Exception as e:
+        logger.error(f"moderation failed-open: {e}")
+        return default
+
+def _fp(request: Request) -> str:
+    import hashlib
+    ip = request.client.host if request.client else "unknown"
+    ua = request.headers.get("user-agent", "")
+    return hashlib.sha256(f"{ip}|{ua}".encode()).hexdigest()[:24]
+
+async def abuse_guard(request: Request, slug: str, text: str) -> Optional[str]:
+    """Privacy-preserving abuse signals — hashed fingerprint only, never raw IP. Returns error key or None."""
+    fp = _fp(request)
+    now = datetime.now(timezone.utc)
+    sig = await db.abuse_signals.find_one({"fp": fp}, {"_id": 0})
+    if sig and sig.get("restricted_until"):
+        until = datetime.fromisoformat(str(sig["restricted_until"]).replace("Z", "+00:00"))
+        if until > now:
+            return "restricted"
+    window = (now - timedelta(minutes=10)).isoformat()
+    recent = await db.submission_log.count_documents({"fp": fp, "slug": slug, "created_at": {"$gte": window}})
+    if recent >= 6:
+        return "rate_limited"
+    norm = " ".join((text or "").lower().split())
+    if norm:
+        dup_window = (now - timedelta(hours=24)).isoformat()
+        if await db.submission_log.find_one({"fp": fp, "slug": slug, "norm": norm, "created_at": {"$gte": dup_window}}, {"_id": 0}):
+            return "duplicate"
+    return None
+
+async def record_strike(request: Request, level: str):
+    from pymongo import ReturnDocument
+    fp = _fp(request)
+    inc = 2 if level == "RED" else 1
+    doc = await db.abuse_signals.find_one_and_update(
+        {"fp": fp}, {"$inc": {"strikes": inc}, "$set": {"last": now_iso()}},
+        upsert=True, return_document=ReturnDocument.AFTER)
+    if (doc or {}).get("strikes", 0) >= 4:
+        until = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+        await db.abuse_signals.update_one({"fp": fp}, {"$set": {"restricted_until": until, "strikes": 0}})
+
+async def log_mod_event(level: str, confidence: int, content_type: str, action: str, category: str):
+    """Minimum-necessary internal record — never stores content, emails, or IPs."""
+    await db.moderation_events.insert_one({
+        "id": str(uuid.uuid4()), "level": level, "confidence": confidence,
+        "content_type": content_type, "action": action, "category": category,
+        "created_at": now_iso(),
+    })
+
+class RewriteIn(BaseModel):
+    text: str
+
+@api_router.post("/moderate/rewrite")
+async def moderate_rewrite(payload: RewriteIn):
+    """Rewrite with kindness — available to anonymous supporters, no account needed."""
+    if not payload.text.strip():
+        raise HTTPException(400, "Nothing to rewrite")
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    chat = LlmChat(api_key=EMERGENT_KEY, session_id=f"rewrite-{uuid.uuid4().hex[:8]}",
+                   system_message=MOD_REWRITE_SYSTEM).with_model("anthropic", "claude-sonnet-4-6")
+    resp = await chat.send_message(UserMessage(text=payload.text[:2000]))
+    text = resp if isinstance(resp, str) else getattr(resp, "text", str(resp))
+    return {"suggestion": text.strip().strip('"')}
+
+class AppealIn(BaseModel):
+    slug: str
+    draft_text: str
+
+@api_router.post("/moderate/appeal")
+async def moderate_appeal(payload: AppealIn):
+    """Future-ready human-review queue. Minimal data, no moderation internals exposed."""
+    await db.appeals.insert_one({
+        "id": str(uuid.uuid4()), "slug": payload.slug, "draft_text": payload.draft_text[:500],
+        "status": "queued", "created_at": now_iso(),
+    })
+    return {"ok": True}
+
+class ReportIn(BaseModel):
+    category: str  # harassment | threat | self_harm | abuse | sexual | privacy | other
+
+@api_router.post("/hope/{item_id}/report")
+async def report_item(item_id: str, payload: ReportIn, request: Request):
+    """Discreet report — pulls the item back to private immediately."""
+    fp = _fp(request)
+    window = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+    if await db.reports.count_documents({"fp": fp, "created_at": {"$gte": window}}) >= 10:
+        raise HTTPException(429, "Too many reports")
+    item = await db.hope_reasons.find_one({"id": item_id}, {"_id": 0})
+    if not item:
+        raise HTTPException(404, "Not found")
+    await db.reports.insert_one({
+        "id": str(uuid.uuid4()), "item_id": item_id, "category": payload.category,
+        "fp": fp, "created_at": now_iso(),
+    })
+    await db.hope_reasons.update_one({"id": item_id}, {"$set": {"visibility": "private", "reported": True}})
+    await log_mod_event("REPORT", 100, item.get("kind", "text"), "reported", payload.category)
+    return {"ok": True}
+
+@api_router.post("/hope/{item_id}/approve")
+async def approve_item(item_id: str, request: Request):
+    user = await require_user(request)
+    r = await db.hope_reasons.update_one({"id": item_id, "user_id": user["user_id"]}, {"$set": {"status": "visible"}})
+    if r.matched_count == 0:
+        raise HTTPException(404, "Not found")
+    return {"ok": True}
+
+class AnchorSettingsIn(BaseModel):
+    who: str = "anyone"  # anyone | approval | off
+    require_approval: bool = False
+    allow_anonymous: bool = True
+
+@api_router.put("/anchor-settings")
+async def put_anchor_settings(payload: AnchorSettingsIn, request: Request):
+    user = await require_user(request)
+    if payload.who not in ("anyone", "approval", "off"):
+        raise HTTPException(400, "Invalid value")
+    doc = {"who": payload.who, "require_approval": payload.require_approval,
+           "allow_anonymous": payload.allow_anonymous, "updated_at": now_iso()}
+    await db.users.update_one({"user_id": user["user_id"]}, {"$set": {"anchor_settings": doc}})
+    return {"ok": True}
+
+@api_router.get("/anchor-settings")
+async def get_anchor_settings(request: Request):
+    user = await require_user(request)
+    return user.get("anchor_settings") or {"who": "anyone", "require_approval": False, "allow_anonymous": True}
 
 # ---------------- Wall of Hope ----------------
 @api_router.post("/hope/{slug}")
-async def add_hope(slug: str, payload: HopeReasonIn):
+async def add_hope(slug: str, payload: HopeReasonIn, request: Request):
     u = await db.users.find_one({"sanctuary_slug": slug}, {"_id": 0})
     if not u:
         raise HTTPException(404, "Sanctuary not found")
+
+    # Recipient controls who can contribute
+    settings = u.get("anchor_settings") or {}
+    if settings.get("who") == "off":
+        raise HTTPException(403, "not_accepting")
+    if not settings.get("allow_anonymous", True) and not (payload.supporter_name or "").strip():
+        raise HTTPException(400, "name_required")
+
+    # Privacy-preserving abuse guard (rate limits, duplicates, restrictions)
+    abuse = await abuse_guard(request, slug, payload.text or "")
+    if abuse == "restricted":
+        raise HTTPException(429, "submissions_paused")
+    if abuse == "rate_limited":
+        raise HTTPException(429, "rate_limited")
+    if abuse == "duplicate":
+        raise HTTPException(409, "duplicate")
+
+    # Contextual moderation — text + sender name (and voice transcript below)
+    combined = f"sender name: {payload.supporter_name or 'anonymous'}\nmessage: {payload.text or '(no text)'}"
+    mod = await moderate_text(combined)
+    await log_mod_event(mod["level"], mod.get("confidence", 0), payload.kind,
+                        {"GREEN": "delivered", "BLUE": "delivered", "YELLOW": "held", "ORANGE": "blocked", "RED": "blocked_flagged"}[mod["level"]],
+                        mod.get("category", ""))
+
+    if mod["level"] in ("YELLOW", "ORANGE"):
+        try:
+            suggestion = (await moderate_rewrite(RewriteIn(text=payload.text or "")))["suggestion"]
+        except Exception:
+            suggestion = ""
+        if mod["level"] == "ORANGE":
+            await record_strike(request, "ORANGE")
+        raise HTTPException(422, detail={
+            "moderation": "hold" if mod["level"] == "YELLOW" else "blocked",
+            "suggestion": suggestion,
+            "sender_support": bool(mod.get("sender_risk")),
+        })
+    if mod["level"] == "RED":
+        await record_strike(request, "RED")
+        raise HTTPException(422, detail={"moderation": "blocked", "suggestion": "", "sender_support": bool(mod.get("sender_risk"))})
+
+    # Voice notes: transcribe and moderate the transcript before delivery
+    voice_transcript = ""
+    if payload.kind == "voice" and payload.media_path:
+        try:
+            from emergentintegrations.llm.openai.speech_to_text import OpenAISpeechToText
+            import tempfile
+            data, _ = get_object(payload.media_path)
+            with tempfile.NamedTemporaryFile(suffix=".webm", delete=False) as tmp:
+                tmp.write(data)
+                tpath = tmp.name
+            try:
+                stt = OpenAISpeechToText(api_key=EMERGENT_KEY)
+                with open(tpath, "rb") as f:
+                    r = await stt.transcribe(f)
+                voice_transcript = (r.text if hasattr(r, "text") else (r.get("text") if isinstance(r, dict) else str(r))).strip()
+            finally:
+                os.unlink(tpath)
+            if voice_transcript:
+                vmod = await moderate_text(voice_transcript)
+                await log_mod_event(vmod["level"], vmod.get("confidence", 0), "voice_transcript", "delivered" if vmod["level"] in ("GREEN", "BLUE") else "blocked", vmod.get("category", ""))
+                if vmod["level"] not in ("GREEN", "BLUE"):
+                    raise HTTPException(422, detail={"moderation": "blocked", "suggestion": "", "sender_support": bool(vmod.get("sender_risk"))})
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"voice moderation failed-open: {e}")
+
+    consent_level = payload.consent_level if payload.consent_level in ("recipient", "circle", "public") else ("circle" if payload.consent_shared else "recipient")
+    status = "pending" if (settings.get("require_approval") or settings.get("who") == "approval") else "visible"
     doc = {
         "id": str(uuid.uuid4()),
         "user_id": u["user_id"],
-        "supporter_name": payload.supporter_name or "A kindred soul",
+        "supporter_name": (payload.supporter_name or "").strip() or "A kindred soul",
         "kind": payload.kind, "text": payload.text or "",
         "media_path": payload.media_path or "",
         "song_url": payload.song_url or "",
+        "reason": payload.reason or "smile",
+        "consent_level": consent_level,
+        "consent_shared": consent_level != "recipient",
+        "voice_transcript": voice_transcript,
+        "visibility": "private",  # private | shared | public | forever — recipient-controlled
+        "status": status,
         "felt_count": 0, "is_favorite": False,
         "created_at": now_iso(),
     }
     await db.hope_reasons.insert_one(doc)
+    await db.submission_log.insert_one({
+        "id": str(uuid.uuid4()), "fp": _fp(request), "slug": slug,
+        "norm": " ".join((payload.text or "").lower().split()), "created_at": now_iso(),
+    })
     doc.pop("_id", None)
     return doc
 
@@ -323,6 +579,28 @@ async def favorite_hope(item_id: str, request: Request):
     if not item:
         raise HTTPException(404, "Not found")
     await db.hope_reasons.update_one({"id": item_id}, {"$set": {"is_favorite": not item.get("is_favorite", False)}})
+    return {"ok": True}
+
+class VisibilityIn(BaseModel):
+    visibility: str  # private | shared | public | forever
+
+CONSENT_ORDER = {"recipient": 0, "circle": 1, "public": 2}
+
+@api_router.post("/hope/{item_id}/visibility")
+async def set_visibility(item_id: str, payload: VisibilityIn, request: Request):
+    """Recipient decides what appears on their Anchor. Sender's consent level caps the ceiling."""
+    user = await require_user(request)
+    if payload.visibility not in ("private", "shared", "public", "forever"):
+        raise HTTPException(400, "Invalid visibility")
+    item = await db.hope_reasons.find_one({"id": item_id, "user_id": user["user_id"]}, {"_id": 0})
+    if not item:
+        raise HTTPException(404, "Not found")
+    if payload.visibility != "private":
+        level = item.get("consent_level") or ("circle" if item.get("consent_shared") else "recipient")
+        need = "public" if payload.visibility == "public" else "circle"
+        if CONSENT_ORDER[level] < CONSENT_ORDER[need]:
+            raise HTTPException(403, "The sender didn't allow this level of sharing.")
+    await db.hope_reasons.update_one({"id": item_id}, {"$set": {"visibility": payload.visibility}})
     return {"ok": True}
 
 @api_router.get("/hope/emergency")
@@ -780,6 +1058,9 @@ RESOURCES = [
     {"id": "r5", "name": "1800RESPECT", "country": "Australia", "type": "IPV Hotline", "phone": "1800 737 732", "url": "https://1800respect.org.au", "twenty_four_seven": True},
     {"id": "r6", "name": "Women Helpline India", "country": "India", "type": "IPV Hotline", "phone": "181", "url": "https://wcd.nic.in", "twenty_four_seven": True},
     {"id": "r7", "name": "SOS Amitié", "country": "France", "type": "Crisis Hotline", "phone": "09 72 39 40 50", "url": "https://sos-amitie.com", "twenty_four_seven": True},
+    {"id": "r8", "name": "NCMH Crisis Hotline", "country": "Philippines", "type": "Crisis Hotline", "phone": "1553", "url": "https://ncmh.gov.ph", "twenty_four_seven": True},
+    {"id": "r9", "name": "Hopeline Philippines", "country": "Philippines", "type": "Crisis Hotline", "phone": "0917-899-8727", "url": "https://hopeline.com.ph", "twenty_four_seven": True},
+    {"id": "r10", "name": "Philippines DSWD — Violence Against Women", "country": "Philippines", "type": "IPV Hotline", "phone": "1343", "url": "https://dswd.gov.ph", "twenty_four_seven": True},
 ]
 
 @api_router.get("/resources")
@@ -836,7 +1117,7 @@ async def og_image(slug: str):
         d.text((90, 100), "A  Q U I E T   D O O R W A Y", font=f_eyebrow, fill="#8E9E8D")
         d.text((86, 160), "Give", font=f_h1, fill="#1F2623")
         d.text((86 + d.textlength("Give ", font=f_h1), 160), name, font=f_h1, fill="#C1521E")
-        d.text((86, 250), "a reason to stay.", font=f_h1, fill="#1F2623")
+        d.text((86, 250), "a reason.", font=f_h1, fill="#1F2623")
         d.text((90, 360), "A photo. A voice note. A song they used to hum.", font=f_sub, fill="#535E56")
         d.text((90, 400), "No account. No likes. No read receipts.", font=f_sub, fill="#535E56")
         d.text((90, H - 90), "Pocket Anchor", font=f_brand, fill="#4C5D4B")
@@ -857,8 +1138,8 @@ async def og_page(slug: str):
     spa = f"{APP_URL}/with/{slug}"
     html = f"""<!doctype html><html><head>
 <meta charset="utf-8"/>
-<title>Give {name} a reason to stay · Pocket Anchor</title>
-<meta property="og:title" content="Give {name} a reason to stay"/>
+<title>Give {name} a reason. · Pocket Anchor</title>
+<meta property="og:title" content="Give {name} a reason."/>
 <meta property="og:description" content="Leave a soft memory — a photo, a voice note, a song. No account, no likes, no read receipts."/>
 <meta property="og:image" content="{img}"/>
 <meta property="og:url" content="{spa}"/>
@@ -1519,6 +1800,7 @@ async def vault_del(vid: str, request: Request):
 
 COUNTRY_INFO = {
     "japan": {"emergency": "119 (ambulance) · 110 (police)", "embassy": "U.S. Embassy Tokyo · +81-3-3224-5000"},
+    "philippines": {"emergency": "911", "embassy": "U.S. Embassy Manila · +63-2-5301-2000"},
     "portugal": {"emergency": "112", "embassy": "U.S. Embassy Lisbon · +351-21-727-3300"},
     "thailand": {"emergency": "1669 (medical) · 191 (police)", "embassy": "U.S. Embassy Bangkok · +66-2-205-4000"},
     "mexico": {"emergency": "911", "embassy": "U.S. Embassy Mexico City · +52-55-5080-2000"},

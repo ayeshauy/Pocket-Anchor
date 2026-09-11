@@ -16,8 +16,8 @@ const PILLARS = [
     sub: 'Mental Health & Silent Support',
     tagline: 'Passive support for the days when talking is too much. Your people show up without asking you to answer.',
     features: [
-      ['Anchor Link (/with/:slug)', 'one link that speaks for you'],
-      ['Wall of Hope', 'a growing archive of reasons to stay'],
+      ['Anchor Link (/with/:slug)', 'a permanent link — reasons, memories & forever'],
+      ['Wall of Hope', 'a growing archive of reasons, by category'],
       ['Silent Hugs', 'someone felt this, no reply needed'],
       ['Emergency "Break-Glass" Archive', 'for the worst hours'],
       ['Private Journal', 'mood colors & tags, private by default'],
@@ -113,7 +113,11 @@ const FAQS = [
   ['Do I need an account to use the crisis and safety tools?',
    'No. The entire Safety Layer — hotline directory, Survivor Navigator AI, safety resources — works with zero sign-up, directly from the homepage. Accounts are only needed to keep your own Evidence Vault and Rebuilding plan.'],
   ['Can I control exactly what supporters see?',
-   'Yes. Your Anchor Link shows supporters nothing but a doorway to leave warmth — they never see your journal, your mood history, or your data. Guardians you invite see only a soft "weather report" (your current mood color), never your words, and their Thinking-of-You pulses never require a reply.'],
+   'Yes — completely, in two layers. When supporters leave something, they choose who may see it: only you, you plus people you choose, or they may allow public sharing. You then choose per contribution: Private (only you and the sender), Your Anchor (people with your Anchor link), or Public (anyone). Nothing becomes visible automatically, and nothing without the supporter\'s consent. Public sharing never reveals the sender\'s email, IP address, or any moderation details.'],
+  ['What are Reasons, Memories, and Forever on an Anchor?',
+   'Your Anchor Link has three layers. Reasons are encouragements people leave for you — a reason to smile, a favorite memory, a reminder you\'re loved, something to look forward to. Memories are the photos, songs, and voice notes they share. Forever is what you deliberately choose to keep for the long term. Your link is permanent and living — pocketanchor.tech/with/you stays yours until you change it. It works whether you\'re traveling, having an ordinary day, or going through something hard.'],
+  ['How does Anchor protect me from harmful or pressuring messages?',
+   'Every message left on your Anchor passes through a five-level safety and wellbeing layer before it reaches you. Clearly kind messages are delivered — and so are sensitive-but-supportive ones, because grief, worry and hard topics shared with care are not harm. Messages that could pressure or guilt you are gently paused and the sender is invited to soften them; harmful or threatening content is blocked, and senders can request a human review if they believe Anchor misunderstood. You stay in control: you choose who can leave messages, whether your approval is required, and whether anonymous messages are allowed. Repeat abuse is quietly restricted without ever revealing who the sender is. Anchor is not a crisis or emergency service and can never replace professional help — urgent situations are always redirected to local emergency and crisis resources.'],
 ];
 
 export default function Landing({ onSignIn }) {
