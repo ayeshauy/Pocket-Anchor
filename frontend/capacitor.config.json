@@ -1,0 +1,9 @@
+{
+  "appId": "com.pocketanchor.app",
+  "appName": "Pocket Anchor",
+  "webDir": "build",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}
