@@ -33,7 +33,6 @@ function Router() {
   const { user } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
 
-  // Handle OAuth callback synchronously (fragment includes session_id)
   if (location.hash?.includes('session_id=')) return <AuthCallback />;
 
   const isPublicAnchor = (location.pathname.startsWith('/with/')
