@@ -83,7 +83,7 @@ export default function TopNav({ onSignIn }) {
               {!isDash && (
                 <Link to="/dashboard" className="hidden sm:block">
                   <Button data-testid="launch-sanctuary-btn" className="rounded-full bg-willow hover:bg-willow-dark text-cloud px-5">
-                    Launch Sanctuary
+                    Launch My Sanctuary
                   </Button>
                 </Link>
               )}
